@@ -5,7 +5,7 @@
 #include "globals.h"
 
 #define WATCHFACE 1
-#define MY_UUID { 0x91, 0x41, 0xB6, 0x28, 0xBC, 0x89, 0x49, 0x8E, 0xB1, 0x47, 0x04, 0x9F, 0x49, 0xC0, 0x99, 0xAD }
+#define MY_UUID { 0x45, 0x76, 0x89, 0xE2, 0xD3, 0x86, 0x46, 0x0F, 0xAC, 0x7C, 0x4C, 0x83, 0xE7, 0x26, 0x74, 0x52 }
 
 PBL_APP_INFO(MY_UUID,
              "SmartStatus", "Robert Hesse", //Modified by Alexandre Jouandin
@@ -70,6 +70,7 @@ static int weather_img, batteryPercent;
 static char calendar_date_str[STRING_LENGTH], calendar_text_str[STRING_LENGTH];
 static char music_artist_str[STRING_LENGTH], music_title_str[STRING_LENGTH];
 
+static char appointment_time[50];
 
 HeapBitmap bg_image, battery_image;
 HeapBitmap weather_status_imgs[NUM_WEATHER_IMAGES];
@@ -129,6 +130,7 @@ int string2number(char *string) {
 
 /* Convert time string ("HH:MM") to number of minutes */
 int timestr2minutes(char *timestr) {
+	//timestr = "00:00PM XXXX..." or "0:00PM XXXX..."
 	static char hourStr[3], minStr[3];
 	int32_t hour, min;
 	int8_t hDigits = 2;
@@ -144,48 +146,114 @@ int timestr2minutes(char *timestr) {
 	min = string2number(minStr);
 	if(min == -1) return -1;
 	
+	//Manage AM/PM
+	if ((timestr[4] == 'P') || (appointment_time[5] == 'P')) {
+            hour += 12;
+        }
+	
 	return min + (hour * 60);
 }
 
 void apptDisplay() {
-	int32_t apptInMinutes, timeInMinutes;
-	static char date_time_for_appt[] = "00/00 00:00";
+	int apptInMinutes, timeInMinutes, apptInDays, timeInDays, apptInMonths, timeInMonths;
+	static char date_time_for_appt[] = "00/00 00:00 XXXXXXX";
+	// format of appointment_time : "MM/DD 12:34PM LOCATIONXXXX" or "MM/DD all-day LOCATIONXXXX"
+	// format of appointment_time : "0--3—-6----11-------------"
 	PblTm t;
 	
 	get_time(&t);
-
-	/* Manage appoitment notification */
+	
+	
+	// Make sure it's not an all day event
+	bool appt_is_all_day(char *time) { 
+		if (time[6] == 'a' && time[7] == 'l') {
+			return true;
+		} else { return false; }
+	}
+	
+  if (appt_is_all_day(appointment_time)) {
+		// Assign values
+	static char textBuffer[] = "00";
+		strncpy(textBuffer, appointment_time + 3,2);
+	apptInDays = string2number(textBuffer);
+	timeInDays = t.tm_wday;
+		strncpy(textBuffer, appointment_time,2);
+	apptInMonths = string2number(textBuffer);
+	timeInMonths = (t.tm_mon + 1);
+	  
+	  if (apptInDays - timeInDays == 1) {
+				snprintf(date_time_for_appt, 20, "Tomorrow");
+				text_layer_set_text(&calendar_date_layer, date_time_for_appt); 	
+				layer_set_hidden(&animated_layer[CALENDAR_LAYER], 0);
+			} else if (apptInDays == timeInDays) {
+				      snprintf(date_time_for_appt, 20, "Today");
+				// Change lines above for time format, current is days/months
+					  text_layer_set_text(&calendar_date_layer, date_time_for_appt); 	
+					  layer_set_hidden(&animated_layer[CALENDAR_LAYER], 0);
+			} else {
+				      snprintf(date_time_for_appt, 20, "%d/%d", apptInDays, apptInMonths);
+				// Change lines above for time format, current is days/months
+					  text_layer_set_text(&calendar_date_layer, date_time_for_appt); 	
+					  layer_set_hidden(&animated_layer[CALENDAR_LAYER], 0);
+				    } 
+  } else {
+		// First, we assign values
+	  
 	apptInMinutes = timestr2minutes(appointment_time + 6);
+	timeInMinutes = (t.tm_hour * 60) + t.tm_min;
+		static char textBuffer[] = "00";
+		strncpy(textBuffer, appointment_time + 3,2);
+	apptInDays = string2number(textBuffer);
+	timeInDays = t.tm_wday;
+		strncpy(textBuffer, appointment_time,2);
+	apptInMonths = string2number(textBuffer);
+	timeInMonths = (t.tm_mon + 1);
+	
+	
+	/* Manage appoitment notification */
+	
 	if(apptInMinutes >= 0) {
-		timeInMinutes = (t.tm_hour * 60) + t.tm_min;
 		//if(apptInMinutes < timeInMinutes) {
 			//layer_set_hidden(&calendar_layer, 1); 	
 		//}
-		if(apptInMinutes < timeInMinutes) {
-			snprintf(date_time_for_appt, 11, "%d min in", (int)(timeInMinutes - apptInMinutes));
+		if ((apptInDays > timeInDays)||(apptInMonths > timeInMonths)) {
+			if (apptInDays - timeInDays == 1) {
+				snprintf(date_time_for_appt, 20, "Tomorrow at %dh %d", (int)((apptInMinutes)/ 60),(int)((apptInMinutes) % 60));
+				text_layer_set_text(&calendar_date_layer, date_time_for_appt); 	
+				layer_set_hidden(&animated_layer[CALENDAR_LAYER], 0);
+			} else {
+				      snprintf(date_time_for_appt, 20, "%d/%d %dh %d", apptInDays, apptInMonths, (int)((apptInMinutes)/ 60),
+							   (int)((apptInMinutes) % 60));
+				// Change lines above for time format, current is days/months
+					  text_layer_set_text(&calendar_date_layer, date_time_for_appt); 	
+					  layer_set_hidden(&animated_layer[CALENDAR_LAYER], 0);
+				    }  	
+		} else if(apptInMinutes < timeInMinutes) {
+			snprintf(date_time_for_appt, 20, "%d min in", (int)(timeInMinutes - apptInMinutes));
 			text_layer_set_text(&calendar_date_layer, date_time_for_appt); 	
-			layer_set_hidden(&calendar_layer, 0);  	
-		}
-		if(apptInMinutes > timeInMinutes) {
+			layer_set_hidden(&animated_layer[CALENDAR_LAYER], 0);  	
+		} else if(apptInMinutes > timeInMinutes) {
 			if(((apptInMinutes - timeInMinutes) / 60) > 0) {
-				snprintf(date_time_for_appt, 11, "In %dh %dm", 
+				snprintf(date_time_for_appt, 20, "In %dh %dm", 
 						 (int)((apptInMinutes - timeInMinutes) / 60),
 						 (int)((apptInMinutes - timeInMinutes) % 60));
 			} else {
-				snprintf(date_time_for_appt, 11, "In %d min", (int)(apptInMinutes - timeInMinutes));
+				snprintf(date_time_for_appt, 20, "In %d min", (int)(apptInMinutes - timeInMinutes));
 			}
 			text_layer_set_text(&calendar_date_layer, date_time_for_appt); 	
-			layer_set_hidden(&calendar_layer, 0);  	
-		}
-		if(apptInMinutes == timeInMinutes) {
+			layer_set_hidden(&animated_layer[CALENDAR_LAYER], 0);  	
+		}else if(apptInMinutes == timeInMinutes) {
 			text_layer_set_text(&calendar_date_layer, "Now!"); 	
-			layer_set_hidden(&calendar_layer, 0);  	
+			layer_set_hidden(&animated_layer[CALENDAR_LAYER], 0);  	
 			vibes_double_pulse();
-		}
+		} 
+		
+		//Vibrate if event is in 15 minutes
 		if((apptInMinutes >= timeInMinutes) && ((apptInMinutes - timeInMinutes) == 15)) {
 			vibes_short_pulse();
 		}
-	}
+	} // Appointment minutes are positive test
+  } // Appointment is all day test
 }
 
 // End of calendar appointment utilities
@@ -309,7 +377,8 @@ void rcv(DictionaryIterator *received, void *context) {
 	if (t!=NULL) {
 		memcpy(calendar_date_str, t->value->cstring, strlen(t->value->cstring));
         calendar_date_str[strlen(t->value->cstring)] = '\0';
-		text_layer_set_text(&calendar_date_layer, calendar_date_str); 	
+		//text_layer_set_text(&calendar_date_layer, calendar_date_str); 	
+		strncpy(appointment_time, calendar_date_str, 50); //Copy time to appointment_time so that apptDisplay can use it
 	}
 
 	t=dict_find(received, SM_STATUS_CAL_TEXT_KEY); 
@@ -317,6 +386,14 @@ void rcv(DictionaryIterator *received, void *context) {
 		memcpy(calendar_text_str, t->value->cstring, strlen(t->value->cstring));
         calendar_text_str[strlen(t->value->cstring)] = '\0';
 		text_layer_set_text(&calendar_text_layer, calendar_text_str); 	
+		// Resize Calendar text if needed
+		if(strlen(calendar_text_str) <= 15)
+			text_layer_set_font(&calendar_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
+		else
+			if(strlen(calendar_text_str) <= 18)
+				text_layer_set_font(&calendar_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
+			else 
+				text_layer_set_font(&calendar_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_14_BOLD));
 	}
 
 
@@ -614,6 +691,8 @@ void handle_init(AppContextRef ctx) {
 	layer_add_child(&animated_layer[CALENDAR_LAYER], &calendar_text_layer.layer);
 	text_layer_set_text(&calendar_text_layer, "Appointment");
 	
+	apptDisplay(); 
+	
 	
 	
 	//init music layer
@@ -657,10 +736,16 @@ void handle_minute_tick(AppContextRef ctx, PebbleTickEvent *t) {
 
   char *time_format;
 
-  string_format_time(date_text, sizeof(date_text), "%a, %b %e", t->tick_time);
-  text_layer_set_text(&text_date_layer, date_text);
+  // Check 24h mode to now how to handle date
+  if (clock_is_24h_style()) {
+   string_format_time(date_text, sizeof(date_text), "%a %e %b", t->tick_time); //EU mode
+   text_layer_set_text(&text_date_layer, date_text);
+  } else {
+   string_format_time(date_text, sizeof(date_text), "%a, %b %e", t->tick_time);
+   text_layer_set_text(&text_date_layer, date_text);
+  }
 
-
+  // Check 24h mode for hour
   if (clock_is_24h_style()) {
     time_format = "%R";
   } else {
@@ -674,6 +759,7 @@ void handle_minute_tick(AppContextRef ctx, PebbleTickEvent *t) {
   }
 
   text_layer_set_text(&text_time_layer, time_text);
+  apptDisplay(); 
 
 }
 
