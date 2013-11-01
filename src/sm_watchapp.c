@@ -4,14 +4,19 @@
 
 #include "globals.h"
 
-
+#define WATCHFACE 1
 #define MY_UUID { 0x91, 0x41, 0xB6, 0x28, 0xBC, 0x89, 0x49, 0x8E, 0xB1, 0x47, 0x04, 0x9F, 0x49, 0xC0, 0x99, 0xAD }
 
 PBL_APP_INFO(MY_UUID,
-             "SmartStatus", "Robert Hesse",
+             "SmartStatus", "Robert Hesse", //Modified by Alexandre Jouandin
              1, 0, /* App version */
              RESOURCE_ID_APP_ICON,
-             APP_INFO_STANDARD_APP);
+             #if WATCHFACE
+             	APP_INFO_WATCH_FACE
+			 #else
+			 	APP_INFO_STANDARD_APP
+			 #endif
+);
 
 #define STRING_LENGTH 255
 #define NUM_WEATHER_IMAGES	8
@@ -90,6 +95,101 @@ const int WEATHER_IMG_IDS[] = {
 
 
 static uint32_t s_sequence_number = 0xFFFFFFFE;
+/** —————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————
+—————————————————————————————————————————————————————Calendar Appointments———————————————————————————————————————————————————————————————————
+**/
+
+/* Convert letter to digit */
+int letter2digit(char letter) {
+	if((letter >= 48) && (letter <=57)) {
+		return letter - 48;
+	}
+	
+	return -1;
+}
+
+/* Convert string to number */
+int string2number(char *string) {
+	int32_t result = 0;
+	int32_t offset = strlen(string) - 1;
+	int32_t digit = -1;
+	int32_t unit = 1;
+	int8_t letter;	
+
+	for(unit = 1; offset >= 0; unit = unit * 10) {
+		letter = string[offset];
+		digit = letter2digit(letter);
+		if(digit == -1) return -1;
+		result = result + (unit * digit);
+		offset--;
+	}
+	
+	return result;
+}
+
+/* Convert time string ("HH:MM") to number of minutes */
+int timestr2minutes(char *timestr) {
+	static char hourStr[3], minStr[3];
+	int32_t hour, min;
+	int8_t hDigits = 2;
+
+	if(timestr[1] == ':') hDigits = 1;
+	
+	strncpy(hourStr, timestr, hDigits);
+	strncpy(minStr, timestr+hDigits+1, 2);
+	
+	hour = string2number(hourStr);
+	if(hour == -1) return -1;
+	
+	min = string2number(minStr);
+	if(min == -1) return -1;
+	
+	return min + (hour * 60);
+}
+
+void apptDisplay() {
+	int32_t apptInMinutes, timeInMinutes;
+	static char date_time_for_appt[] = "00/00 00:00";
+	PblTm t;
+	
+	get_time(&t);
+
+	/* Manage appoitment notification */
+	apptInMinutes = timestr2minutes(appointment_time + 6);
+	if(apptInMinutes >= 0) {
+		timeInMinutes = (t.tm_hour * 60) + t.tm_min;
+		//if(apptInMinutes < timeInMinutes) {
+			//layer_set_hidden(&calendar_layer, 1); 	
+		//}
+		if(apptInMinutes < timeInMinutes) {
+			snprintf(date_time_for_appt, 11, "%d min in", (int)(timeInMinutes - apptInMinutes));
+			text_layer_set_text(&calendar_date_layer, date_time_for_appt); 	
+			layer_set_hidden(&calendar_layer, 0);  	
+		}
+		if(apptInMinutes > timeInMinutes) {
+			if(((apptInMinutes - timeInMinutes) / 60) > 0) {
+				snprintf(date_time_for_appt, 11, "In %dh %dm", 
+						 (int)((apptInMinutes - timeInMinutes) / 60),
+						 (int)((apptInMinutes - timeInMinutes) % 60));
+			} else {
+				snprintf(date_time_for_appt, 11, "In %d min", (int)(apptInMinutes - timeInMinutes));
+			}
+			text_layer_set_text(&calendar_date_layer, date_time_for_appt); 	
+			layer_set_hidden(&calendar_layer, 0);  	
+		}
+		if(apptInMinutes == timeInMinutes) {
+			text_layer_set_text(&calendar_date_layer, "Now!"); 	
+			layer_set_hidden(&calendar_layer, 0);  	
+			vibes_double_pulse();
+		}
+		if((apptInMinutes >= timeInMinutes) && ((apptInMinutes - timeInMinutes) == 15)) {
+			vibes_short_pulse();
+		}
+	}
+}
+
+// End of calendar appointment utilities
+
 
 AppMessageResult sm_message_out_get(DictionaryIterator **iter_out) {
     AppMessageResult result = app_message_out_get(iter_out);
