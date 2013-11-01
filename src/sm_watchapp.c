@@ -5,7 +5,8 @@
 #include "globals.h"
 
 #define WATCHFACE 1
-#define MY_UUID { 0x91, 0x41, 0xB6, 0x28, 0xBC, 0x89, 0x49, 0x8E, 0xB1, 0x47, 0x04, 0x9F, 0x49, 0xC0, 0x99, 0xAD }
+#define MY_UUID { 0x91, 0x41, 0xB6, 0x28, 0xBC, 0x89, 0x49, 0x8E, 0xB1, 0x47, 0x04, 0x9F, 0x49, 0xC0, 0x99, 0xAD } 
+//it seems like changing UUID makes the app unable to retrieve datas from phone
 
 PBL_APP_INFO(MY_UUID,
              "SmartStatus", "Robert Hesse", //Modified by Alexandre Jouandin
@@ -46,6 +47,7 @@ void reset();
 	
 AppContextRef g_app_context;
 
+bool Watch_Face_Initialized = false;
 
 static Window window;
 static PropertyAnimation ani_out, ani_in;
@@ -182,16 +184,16 @@ void apptDisplay() {
 	timeInMonths = (t.tm_mon + 1);
 	  
 	  if (apptInDays - timeInDays == 1) {
-				snprintf(date_time_for_appt, 20, "Tomorrow");
+				snprintf(date_time_for_appt, 20, "Demain");
 				text_layer_set_text(&calendar_date_layer, date_time_for_appt); 	
 				layer_set_hidden(&animated_layer[CALENDAR_LAYER], 0);
-			} else if (apptInDays == timeInDays) {
-				      snprintf(date_time_for_appt, 20, "Today");
+				} else if (apptInDays == timeInDays) {
+				      snprintf(date_time_for_appt, 20, "Aujourd'hui");
 				// Change lines above for time format, current is days/months
 					  text_layer_set_text(&calendar_date_layer, date_time_for_appt); 	
 					  layer_set_hidden(&animated_layer[CALENDAR_LAYER], 0);
 			} else {
-				      snprintf(date_time_for_appt, 20, "%d/%d", apptInDays, apptInMonths);
+				      snprintf(date_time_for_appt, 20, "Le %d/%d", apptInDays, apptInMonths);
 				// Change lines above for time format, current is days/months
 					  text_layer_set_text(&calendar_date_layer, date_time_for_appt); 	
 					  layer_set_hidden(&animated_layer[CALENDAR_LAYER], 0);
@@ -218,7 +220,7 @@ void apptDisplay() {
 		//}
 		if ((apptInDays > timeInDays)||(apptInMonths > timeInMonths)) {
 			if (apptInDays - timeInDays == 1) {
-				snprintf(date_time_for_appt, 20, "Tomorrow at %dh %d", (int)((apptInMinutes)/ 60),(int)((apptInMinutes) % 60));
+				snprintf(date_time_for_appt, 20, "Demain  %dh %d", (int)((apptInMinutes)/ 60),(int)((apptInMinutes) % 60));
 				text_layer_set_text(&calendar_date_layer, date_time_for_appt); 	
 				layer_set_hidden(&animated_layer[CALENDAR_LAYER], 0);
 			} else {
@@ -229,21 +231,21 @@ void apptDisplay() {
 					  layer_set_hidden(&animated_layer[CALENDAR_LAYER], 0);
 				    }  	
 		} else if(apptInMinutes < timeInMinutes) {
-			snprintf(date_time_for_appt, 20, "%d min in", (int)(timeInMinutes - apptInMinutes));
+			snprintf(date_time_for_appt, 20, "Depuis %d minutes", (int)(timeInMinutes - apptInMinutes));
 			text_layer_set_text(&calendar_date_layer, date_time_for_appt); 	
 			layer_set_hidden(&animated_layer[CALENDAR_LAYER], 0);  	
 		} else if(apptInMinutes > timeInMinutes) {
 			if(((apptInMinutes - timeInMinutes) / 60) > 0) {
-				snprintf(date_time_for_appt, 20, "In %dh %dm", 
+				snprintf(date_time_for_appt, 20, "Dans %dh %dm", 
 						 (int)((apptInMinutes - timeInMinutes) / 60),
 						 (int)((apptInMinutes - timeInMinutes) % 60));
 			} else {
-				snprintf(date_time_for_appt, 20, "In %d min", (int)(apptInMinutes - timeInMinutes));
+				snprintf(date_time_for_appt, 20, "Dans %d minutes", (int)(apptInMinutes - timeInMinutes));
 			}
 			text_layer_set_text(&calendar_date_layer, date_time_for_appt); 	
 			layer_set_hidden(&animated_layer[CALENDAR_LAYER], 0);  	
 		}else if(apptInMinutes == timeInMinutes) {
-			text_layer_set_text(&calendar_date_layer, "Now!"); 	
+			text_layer_set_text(&calendar_date_layer, "Maintenant!"); 	
 			layer_set_hidden(&animated_layer[CALENDAR_LAYER], 0);  	
 			vibes_double_pulse();
 		} 
@@ -559,7 +561,7 @@ void reset() {
 	
 	layer_set_hidden(&text_weather_temp_layer.layer, true);
 	layer_set_hidden(&text_weather_cond_layer.layer, false);
-	text_layer_set_text(&text_weather_cond_layer, "Updating..."); 	
+	text_layer_set_text(&text_weather_cond_layer, "Mise à jour..."); 	
 	
 }
 
@@ -630,7 +632,7 @@ void handle_init(AppContextRef ctx) {
 	layer_add_child(&weather_layer, &text_weather_cond_layer.layer);
 
 	layer_set_hidden(&text_weather_cond_layer.layer, false);
-	text_layer_set_text(&text_weather_cond_layer, "Updating..."); 	
+	text_layer_set_text(&text_weather_cond_layer, "Mise à jour..."); 	
 	
 
 	weather_img = 0;
@@ -680,7 +682,7 @@ void handle_init(AppContextRef ctx) {
 	text_layer_set_background_color(&calendar_date_layer, GColorClear);
 	text_layer_set_font(&calendar_date_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18));
 	layer_add_child(&animated_layer[CALENDAR_LAYER], &calendar_date_layer.layer);
-	text_layer_set_text(&calendar_date_layer, "No Upcoming"); 	
+	text_layer_set_text(&calendar_date_layer, "Aucun"); 	
 
 
 	text_layer_init(&calendar_text_layer, GRect(6, 15, 132, 28));
@@ -689,9 +691,9 @@ void handle_init(AppContextRef ctx) {
 	text_layer_set_background_color(&calendar_text_layer, GColorClear);
 	text_layer_set_font(&calendar_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
 	layer_add_child(&animated_layer[CALENDAR_LAYER], &calendar_text_layer.layer);
-	text_layer_set_text(&calendar_text_layer, "Appointment");
+	text_layer_set_text(&calendar_text_layer, "Rendez-vous");
 	
-	apptDisplay(); 
+	
 	
 	
 	
@@ -705,7 +707,7 @@ void handle_init(AppContextRef ctx) {
 	text_layer_set_background_color(&music_artist_layer, GColorClear);
 	text_layer_set_font(&music_artist_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18));
 	layer_add_child(&animated_layer[MUSIC_LAYER], &music_artist_layer.layer);
-	text_layer_set_text(&music_artist_layer, "Artist"); 	
+	text_layer_set_text(&music_artist_layer, "Aucune lecture en cours"); 	
 
 
 	text_layer_init(&music_song_layer, GRect(6, 15, 132, 28));
@@ -714,7 +716,7 @@ void handle_init(AppContextRef ctx) {
 	text_layer_set_background_color(&music_song_layer, GColorClear);
 	text_layer_set_font(&music_song_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
 	layer_add_child(&animated_layer[MUSIC_LAYER], &music_song_layer.layer);
-	text_layer_set_text(&music_song_layer, "Title");
+	text_layer_set_text(&music_song_layer, "");
 	
 
 
@@ -725,13 +727,40 @@ void handle_init(AppContextRef ctx) {
 	reset();
 }
 
+void switchLayer () { //to use when music plays
+property_animation_init_layer_frame(&ani_out, &animated_layer[active_layer], &GRect(0, 124, 144, 45), &GRect(-144, 124, 144, 45));
+	animation_schedule(&(ani_out.animation));
 
+
+	active_layer = (active_layer + 1) % (NUM_LAYERS);
+
+
+	property_animation_init_layer_frame(&ani_in, &animated_layer[active_layer], &GRect(144, 124, 144, 45), &GRect(0, 124, 144, 45));
+	animation_schedule(&(ani_in.animation));
+}
 
 void handle_minute_tick(AppContextRef ctx, PebbleTickEvent *t) {
 /* Display the time */
   (void)ctx;
 
-  static char time_text[] = "00:00";
+  
+PblTm time;    //Structure to store time info
+get_time(&time);    //Fill the structure with current time
+ 
+int seconds = time.tm_sec;    //Get the current number of seconds
+ 
+	// Display music if any is playing
+	if( ((seconds % 10) == 5) && (strcmp(text_layer_get_text(&music_song_layer),"") != 0) ) {
+		switchLayer();
+	} else if ( ((seconds % 10) == 0) && (active_layer == MUSIC_LAYER) ) {
+		switchLayer();
+	}
+
+// EXECUTE THE FOLLOWING ONLY ONCE PER MINUTE
+	if ((seconds == 0) || (!Watch_Face_Initialized)) {	
+	
+		Watch_Face_Initialized = true;
+static char time_text[] = "00:00";
   static char date_text[] = "Xxxxxxxxx 00";
 
   char *time_format;
@@ -744,6 +773,83 @@ void handle_minute_tick(AppContextRef ctx, PebbleTickEvent *t) {
    string_format_time(date_text, sizeof(date_text), "%a, %b %e", t->tick_time);
    text_layer_set_text(&text_date_layer, date_text);
   }
+	
+	// Primitive hack to translate the day of week to another language
+			// Needs to be exactly 3 characters, e.g. "Mon" or "Mo "
+			// Supported characters: A-Z, a-z, 0-9
+			
+			if (date_text[0] == 'M')
+			{
+				memcpy(&date_text, "Lun", 3); // Monday
+			}
+			
+			if (date_text[0] == 'T' && date_text[1] == 'u')
+			{
+				memcpy(&date_text, "Mar", 3); // Tuesday
+			}
+			
+			if (date_text[0] == 'W')
+			{
+				memcpy(&date_text, "Mer", 3); // Wednesday
+			}
+			
+			if (date_text[0] == 'T' && date_text[1] == 'h')
+			{
+				memcpy(&date_text, "Jeu", 3); // Thursday
+			}
+			
+			if (date_text[0] == 'F')
+			{
+				memcpy(&date_text, "Ven", 3); // Friday
+			}
+			
+			if (date_text[0] == 'S' && date_text[1] == 'a')
+			{
+				memcpy(&date_text, "Sam", 3); // Saturday
+			}
+			
+			if (date_text[0] == 'S' && date_text[1] == 'u')
+			{
+				memcpy(&date_text, "Dim", 3); // Sunday
+			}
+			
+			
+			 
+			//Primitive Hack to translate month - Only a few are translated because in french, most of the beginnings are similar to english
+			if (date_text[7] == 'F')
+			{
+				memmove(&date_text[7], "Fev", sizeof(date_text)); // Fevrier
+			}
+			
+			if (date_text[7] == 'A' && date_text[9] == 'r')
+			{
+				memmove(&date_text[7], "Avr", sizeof(date_text)); // Avril
+			}
+			
+			if (date_text[7] == 'M' && date_text[9] == 'y')
+			{
+				memmove(&date_text[7], "Mai", sizeof(date_text)); // Mai
+			}
+			
+			if (date_text[7] == 'A' && date_text[9] == 'g')
+			{
+				memmove(&date_text[7], "Aou", sizeof(date_text)); // Aout
+			}
+			
+			
+			
+			//  strcat(date_text, month_text);	
+				
+	if ((date_text[4] == '0') && (date_text[5] == '1')) {
+		memcpy(&date_text[4], "1e", 2); //hack to translate 1 in 1e in French
+	} 
+	else if (date_text[4] == '0') {
+			    // Hack to get rid of the leading zero of the day of month
+	            memmove(&date_text[4], &date_text[5], sizeof(date_text) - 1);
+			    }
+			
+			
+			
 
   // Check 24h mode for hour
   if (clock_is_24h_style()) {
@@ -759,7 +865,7 @@ void handle_minute_tick(AppContextRef ctx, PebbleTickEvent *t) {
   }
 
   text_layer_set_text(&text_time_layer, time_text);
-  apptDisplay(); 
+		apptDisplay(); }
 
 }
 
