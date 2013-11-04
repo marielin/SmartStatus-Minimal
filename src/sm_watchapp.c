@@ -9,8 +9,8 @@
 //it seems like changing UUID makes the app unable to retrieve datas from phone
 
 PBL_APP_INFO(MY_UUID,
-             "SmartStatus", "Robert Hesse", //Modified by Alexandre Jouandin
-             1, 0, /* App version */
+             "SmartFrenchIze", "Robert Hesse", //Modified by Alexandre Jouandin
+             0, 2, /* App version */
              RESOURCE_ID_APP_ICON,
              #if WATCHFACE
              	APP_INFO_WATCH_FACE
@@ -206,7 +206,7 @@ void apptDisplay() {
 		static char textBuffer[] = "00";
 		strncpy(textBuffer, appointment_time + 3,2);
 	apptInDays = string2number(textBuffer);
-	timeInDays = t.tm_wday;
+	timeInDays = t.tm_mday;
 		strncpy(textBuffer, appointment_time,2);
 	apptInMonths = string2number(textBuffer);
 	timeInMonths = (t.tm_mon + 1);
@@ -230,6 +230,10 @@ void apptDisplay() {
 					  text_layer_set_text(&calendar_date_layer, date_time_for_appt); 	
 					  layer_set_hidden(&animated_layer[CALENDAR_LAYER], 0);
 				    }  	
+		} else if(timeInMinutes - apptInMinutes == 1) {
+			snprintf(date_time_for_appt, 20, "Depuis %d minute", (int)(timeInMinutes - apptInMinutes));
+			text_layer_set_text(&calendar_date_layer, date_time_for_appt); 	
+			layer_set_hidden(&animated_layer[CALENDAR_LAYER], 0);  	
 		} else if(apptInMinutes < timeInMinutes) {
 			snprintf(date_time_for_appt, 20, "Depuis %d minutes", (int)(timeInMinutes - apptInMinutes));
 			text_layer_set_text(&calendar_date_layer, date_time_for_appt); 	
