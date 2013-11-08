@@ -71,6 +71,7 @@ static int weather_img, batteryPercent;
 
 static char calendar_date_str[STRING_LENGTH], calendar_text_str[STRING_LENGTH];
 static char music_artist_str[STRING_LENGTH], music_title_str[STRING_LENGTH];
+static bool music_is_playing = false;
 
 static char appointment_time[50];
 
@@ -178,7 +179,7 @@ void apptDisplay() {
 	static char textBuffer[] = "00";
 		strncpy(textBuffer, appointment_time + 3,2);
 	apptInDays = string2number(textBuffer);
-	timeInDays = t.tm_wday;
+	timeInDays = t.tm_mday;
 		strncpy(textBuffer, appointment_time,2);
 	apptInMonths = string2number(textBuffer);
 	timeInMonths = (t.tm_mon + 1);
@@ -433,6 +434,14 @@ void rcv(DictionaryIterator *received, void *context) {
 		timerUpdateCalendar = app_timer_send_event(g_app_context, interval /* milliseconds */, 2);
 	}
 
+	
+	
+	t=dict_find(received, SM_PLAY_STATUS_KEY); 
+	if (t!=NULL) {
+		if (t->value->int32) {
+		music_is_playing = true;}
+	}
+	
 	t=dict_find(received, SM_SONG_LENGTH_KEY); 
 	if (t!=NULL) {
 		int interval = t->value->int32 * 1000;
@@ -440,6 +449,7 @@ void rcv(DictionaryIterator *received, void *context) {
 		app_timer_cancel_event(g_app_context, timerUpdateMusic);
 		timerUpdateMusic = app_timer_send_event(g_app_context, interval /* milliseconds */, 3);
 	}
+	
 
 }
 
@@ -754,7 +764,7 @@ get_time(&time);    //Fill the structure with current time
 int seconds = time.tm_sec;    //Get the current number of seconds
  
 	// Display music if any is playing
-	if( ((seconds % 10) == 5) && (strcmp(text_layer_get_text(&music_song_layer),"") != 0) ) {
+	if( ((seconds % 10) == 5) && music_is_playing /**(strcmp(text_layer_get_text(&music_song_layer),"") != 0)**/ ) {
 		switchLayer();
 	} else if ( ((seconds % 10) == 0) && (active_layer == MUSIC_LAYER) ) {
 		switchLayer();
