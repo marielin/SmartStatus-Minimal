@@ -78,12 +78,11 @@
 #define SM_STATUS_UPD_CAL_KEY       0xFC4A
 
 
-
 #define STATUS_SCREEN_APP 			NUM_APPS
 
-typedef enum {CALENDAR_APP, MUSIC_APP, GPS_APP, STOCKS_APP, BITCOIN_APP, CAMERA_APP, WEATHER_APP, URL_APP, FINDPHONE_APP, REMINDERS_APP, STATUS_SCREEN_APP} AppIDs;
+typedef enum {CALENDAR_APP, MUSIC_APP, GPS_APP, SIRI_APP, STOCKS_APP, BITCOIN_APP, CAMERA_APP, WEATHER_APP, URL_APP, MESSAGES_APP, CALLS_APP, FINDPHONE_APP, REMINDERS_APP, STATUS_SCREEN_APP} AppIDs;
 
-static char *app_names[] = {"Calendar", "Music", "GPS", "Stocks", "Bitcoin", "Camera", "Weather", "HTTP Request", "Find My Phone", "Reminders"};
+static char *app_names[] = {"Calendar", "Music", "GPS", "Launch Siri", "Stocks", "Bitcoin", "Camera", "Weather", "HTTP Request", "Messages", "Incoming Calls", "Find My Phone", "Reminders"};
 
 
 #endif

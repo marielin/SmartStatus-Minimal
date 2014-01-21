@@ -8,7 +8,7 @@
 #define MY_UUID { 0x91, 0x41, 0xB6, 0x28, 0xBC, 0x89, 0x49, 0x8E, 0xB1, 0x47, 0x04, 0x9F, 0x49, 0xC0, 0x99, 0xAD } 
 //it seems like changing UUID makes the app unable to retrieve datas from phone
 			PBL_APP_INFO(MY_UUID,
-             "FrenchStatus", "Robert Hesse", //Modified by Alexandre Jouandin
+             "JB FrenchStatus", "Robert Hesse", //Modified by Alexandre Jouandin
              0, 3,
              RESOURCE_ID_APP_ICON,
              #if WATCHFACE
