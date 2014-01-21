@@ -1,6 +1,12 @@
 {
     "media": [
         {
+            "menuIcon": true,
+            "defName": "APP_ICON",
+            "type": "png",
+            "file": "images/app_icon.png"
+        },
+        {
             "defName": "IMAGE_BACKGROUND",
             "type": "png",
             "file": "images/background.png"
@@ -51,20 +57,15 @@
             "file": "images/battery.png"
         },
         {
-            "defName": "FONT_ROBOTO_CONDENSED_21",
+            "defName": "FONT_DATE_21",
             "type": "font",
             "file": "fonts/Roboto-Condensed.ttf"
         },
         {
             "characterRegex": "[:0-9]",
-            "defName": "FONT_ROBOTO_BOLD_SUBSET_49",
+            "defName": "FONT_HOUR_49",
             "type": "font",
             "file": "fonts/Roboto-Bold.ttf"
-        },
-        {
-            "defName": "APP_ICON",
-            "type": "png",
-            "file": "images/app_icon.png"
         }
     ],
     "friendlyVersion": "VERSION",

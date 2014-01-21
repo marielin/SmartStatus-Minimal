@@ -7,10 +7,9 @@
 #define WATCHFACE 1
 #define MY_UUID { 0x91, 0x41, 0xB6, 0x28, 0xBC, 0x89, 0x49, 0x8E, 0xB1, 0x47, 0x04, 0x9F, 0x49, 0xC0, 0x99, 0xAD } 
 //it seems like changing UUID makes the app unable to retrieve datas from phone
-
-PBL_APP_INFO(MY_UUID,
-             "SmartFrenchIze", "Robert Hesse", //Modified by Alexandre Jouandin
-             0, 2, /* App version */
+			PBL_APP_INFO(MY_UUID,
+             "FrenchStatus", "Robert Hesse", //Modified by Alexandre Jouandin
+             0, 3,
              RESOURCE_ID_APP_ICON,
              #if WATCHFACE
              	APP_INFO_WATCH_FACE
@@ -21,6 +20,7 @@ PBL_APP_INFO(MY_UUID,
 
 #define STRING_LENGTH 255
 #define NUM_WEATHER_IMAGES	8
+#define VIBE_ON_HOUR true
 
 typedef enum {CALENDAR_LAYER, MUSIC_LAYER, NUM_LAYERS} AnimatedLayers;
 
@@ -220,19 +220,38 @@ void apptDisplay() {
 			//layer_set_hidden(&calendar_layer, 1); 	
 		//}
 		if ((apptInDays > timeInDays)||(apptInMonths > timeInMonths)) {
-			if (apptInDays - timeInDays == 1) {
-				snprintf(date_time_for_appt, 20, "Demain  %dh %d", (int)((apptInMinutes)/ 60),(int)((apptInMinutes) % 60));
+			if ((apptInMinutes == 0) && (apptInDays - timeInDays == 1)) { 
+			snprintf(date_time_for_appt, 20, "A Minuit");
+				// Change lines above for time format, current is days/months
+			text_layer_set_text(&calendar_date_layer, date_time_for_appt);; 	
+			layer_set_hidden(&animated_layer[CALENDAR_LAYER], 0);  	
+			} else if ((apptInDays - timeInDays == 1) && (((apptInMinutes) % 60) == 0)) {
+				snprintf(date_time_for_appt, 20, "Demain, %dh", (int)((apptInMinutes)/ 60));
 				text_layer_set_text(&calendar_date_layer, date_time_for_appt); 	
 				layer_set_hidden(&animated_layer[CALENDAR_LAYER], 0);
-			} else {
+            } else if (apptInDays - timeInDays == 1) {
+				snprintf(date_time_for_appt, 20, "Demain, %dh %d", (int)((apptInMinutes)/ 60),(int)((apptInMinutes) % 60));
+				text_layer_set_text(&calendar_date_layer, date_time_for_appt); 	
+				layer_set_hidden(&animated_layer[CALENDAR_LAYER], 0);
+            } else {
 				      snprintf(date_time_for_appt, 20, "%d/%d %dh %d", apptInDays, apptInMonths, (int)((apptInMinutes)/ 60),
 							   (int)((apptInMinutes) % 60));
 				// Change lines above for time format, current is days/months
 					  text_layer_set_text(&calendar_date_layer, date_time_for_appt); 	
 					  layer_set_hidden(&animated_layer[CALENDAR_LAYER], 0);
-				    }  	
-		} else if(timeInMinutes - apptInMinutes == 1) {
+			}  	
+		}  else if (apptInMinutes == 0) { 
+			snprintf(date_time_for_appt, 20, "Aucun");
+				// Change lines above for time format, current is days/months
+			text_layer_set_text(&calendar_date_layer, date_time_for_appt);; 	
+			layer_set_hidden(&animated_layer[CALENDAR_LAYER], 0);  	
+        } else if(timeInMinutes - apptInMinutes == 1) {
 			snprintf(date_time_for_appt, 20, "Depuis %d minute", (int)(timeInMinutes - apptInMinutes));
+			text_layer_set_text(&calendar_date_layer, date_time_for_appt); 	
+			layer_set_hidden(&animated_layer[CALENDAR_LAYER], 0);  	
+		} else if((apptInMinutes < timeInMinutes) && (((timeInMinutes - apptInMinutes) / 60) > 0)) {
+			snprintf(date_time_for_appt, 20, "Depuis %dh %dmin", 
+					 (int)((timeInMinutes - apptInMinutes)/60),(int)((timeInMinutes - apptInMinutes)%60));
 			text_layer_set_text(&calendar_date_layer, date_time_for_appt); 	
 			layer_set_hidden(&animated_layer[CALENDAR_LAYER], 0);  	
 		} else if(apptInMinutes < timeInMinutes) {
@@ -673,7 +692,7 @@ void handle_init(AppContextRef ctx) {
 	text_layer_set_text_color(&text_date_layer, GColorWhite);
 	text_layer_set_background_color(&text_date_layer, GColorClear);
 	layer_set_frame(&text_date_layer.layer, GRect(0, 45, 144, 30));
-	text_layer_set_font(&text_date_layer, fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_ROBOTO_CONDENSED_21)));
+	text_layer_set_font(&text_date_layer, fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_DATE_21)));
 	layer_add_child(&window.layer, &text_date_layer.layer);
 
 
@@ -682,7 +701,7 @@ void handle_init(AppContextRef ctx) {
 	text_layer_set_text_color(&text_time_layer, GColorWhite);
 	text_layer_set_background_color(&text_time_layer, GColorClear);
 	layer_set_frame(&text_time_layer.layer, GRect(0, -5, 144, 50));
-	text_layer_set_font(&text_time_layer, fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_ROBOTO_BOLD_SUBSET_49)));
+	text_layer_set_font(&text_time_layer, fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_HOUR_49)));
 	layer_add_child(&window.layer, &text_time_layer.layer);
 
 
@@ -721,7 +740,7 @@ void handle_init(AppContextRef ctx) {
 	text_layer_set_background_color(&music_artist_layer, GColorClear);
 	text_layer_set_font(&music_artist_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18));
 	layer_add_child(&animated_layer[MUSIC_LAYER], &music_artist_layer.layer);
-	text_layer_set_text(&music_artist_layer, "Aucune lecture en cours"); 	
+	text_layer_set_text(&music_artist_layer, "Musique"); 	
 
 
 	text_layer_init(&music_song_layer, GRect(6, 15, 132, 28));
@@ -730,7 +749,7 @@ void handle_init(AppContextRef ctx) {
 	text_layer_set_background_color(&music_song_layer, GColorClear);
 	text_layer_set_font(&music_song_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
 	layer_add_child(&animated_layer[MUSIC_LAYER], &music_song_layer.layer);
-	text_layer_set_text(&music_song_layer, "");
+	text_layer_set_text(&music_song_layer, "Aucune lecture en cours");
 	
 
 
@@ -881,6 +900,13 @@ static char time_text[] = "00:00";
   text_layer_set_text(&text_time_layer, time_text);
 		apptDisplay(); }
 
+	int heure = t->tick_time->tm_hour;
+#if VIBE_ON_HOUR
+  if (((t->units_changed & HOUR_UNIT) == HOUR_UNIT) && ((heure > 9) && (heure < 23))) {
+    vibes_double_pulse();
+  }
+#endif
+	
 }
 
 void handle_deinit(AppContextRef ctx) {
