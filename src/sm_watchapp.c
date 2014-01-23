@@ -48,6 +48,7 @@ void reset();
 AppContextRef g_app_context;
 
 bool Watch_Face_Initialized = false;
+bool Precision_Is_Seconds = false;
 
 static Window window;
 static PropertyAnimation ani_out, ani_in;
@@ -71,6 +72,7 @@ static int weather_img, batteryPercent;
 
 static char calendar_date_str[STRING_LENGTH], calendar_text_str[STRING_LENGTH];
 static char music_artist_str[STRING_LENGTH], music_title_str[STRING_LENGTH];
+static char sms_count_str[5], mail_count_str[5], phone_count_str[5]; //For Jailbreak !
 static bool music_is_playing = false;
 
 static char appointment_time[50];
@@ -268,6 +270,11 @@ void apptDisplay() {
 				snprintf(date_time_for_appt, 20, "Dans %dh %dm", 
 						 (int)((apptInMinutes - timeInMinutes) / 60),
 						 (int)((apptInMinutes - timeInMinutes) % 60));
+			} else if ((apptInMinutes - timeInMinutes) <= 1 ) {  // Décompte en secondes
+				int timeInSeconds = t.tm_sec;
+				snprintf(date_time_for_appt, 20, "Dans %d secondes", (int)(60 - timeInSeconds));
+				Precision_Is_Seconds = true;
+							// On va pas faire chier pour le 's' quand il reste 1 seconde hein !
 			} else {
 				snprintf(date_time_for_appt, 20, "Dans %d minutes", (int)(apptInMinutes - timeInMinutes));
 			}
@@ -277,6 +284,7 @@ void apptDisplay() {
 			text_layer_set_text(&calendar_date_layer, "Maintenant!"); 	
 			layer_set_hidden(&animated_layer[CALENDAR_LAYER], 0);  	
 			vibes_double_pulse();
+			Precision_Is_Seconds = false;
 		} 
 		
 		//Vibrate if event is in 15 minutes
@@ -397,7 +405,31 @@ void rcv(DictionaryIterator *received, void *context) {
 		bitmap_layer_set_bitmap(&weather_image, &weather_status_imgs[t->value->uint8].bmp);	  	
 	}
 
-	
+	t=dict_find(received, SM_COUNT_MAIL_KEY); 
+        if (t!=NULL) {
+                memcpy(mail_count_str, t->value->cstring, strlen(t->value->cstring));
+        mail_count_str[strlen(t->value->cstring)] = '\0';
+                //text_layer_set_text(&text_mail_layer, mail_count_str);         
+        }
+
+        t=dict_find(received, SM_COUNT_SMS_KEY); 
+        if (t!=NULL) {
+                memcpy(sms_count_str, t->value->cstring, strlen(t->value->cstring));
+        sms_count_str[strlen(t->value->cstring)] = '\0';
+                //text_layer_set_text(&text_sms_layer, sms_count_str);         
+        }
+
+        t=dict_find(received, SM_COUNT_PHONE_KEY); 
+        if (t!=NULL) {
+                memcpy(phone_count_str, t->value->cstring, strlen(t->value->cstring));
+        phone_count_str[strlen(t->value->cstring)] = '\0';
+                //text_layer_set_text(&text_phone_layer, phone_count_str);         
+        }
+
+        t=dict_find(received, SM_WEATHER_ICON_KEY); 
+        if (t!=NULL) {
+                bitmap_layer_set_bitmap(&weather_image, &weather_status_imgs[t->value->uint8].bmp);                  
+        }
 	
 	t=dict_find(received, SM_COUNT_BATTERY_KEY); 
 	if (t!=NULL) {
@@ -797,7 +829,7 @@ int seconds = time.tm_sec;    //Get the current number of seconds
 	}
 
 // EXECUTE THE FOLLOWING ONLY ONCE PER MINUTE
-	if ((seconds == 0) || (!Watch_Face_Initialized)) {	
+	if ((seconds == 0) || (!Watch_Face_Initialized) || (Precision_Is_Seconds)) {	
 	
 		Watch_Face_Initialized = true;
 static char time_text[] = "00:00";
