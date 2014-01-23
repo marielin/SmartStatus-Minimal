@@ -242,14 +242,19 @@ void apptDisplay() {
 			}  	
 		}  else if (apptInMinutes == 0) { 
 			snprintf(date_time_for_appt, 20, "Aucun");
-				// Change lines above for time format, current is days/months
 			text_layer_set_text(&calendar_date_layer, date_time_for_appt);; 	
 			layer_set_hidden(&animated_layer[CALENDAR_LAYER], 0);  	
         } else if(timeInMinutes - apptInMinutes == 1) {
 			snprintf(date_time_for_appt, 20, "Depuis %d minute", (int)(timeInMinutes - apptInMinutes));
 			text_layer_set_text(&calendar_date_layer, date_time_for_appt); 	
 			layer_set_hidden(&animated_layer[CALENDAR_LAYER], 0);  	
-		} else if((apptInMinutes < timeInMinutes) && (((timeInMinutes - apptInMinutes) / 60) > 0)) {
+		} else if((apptInMinutes < timeInMinutes) && (((timeInMinutes - apptInMinutes) % 60) == 0)) {
+			snprintf(date_time_for_appt, 20, "Depuis %dh", 
+					 (int)((timeInMinutes - apptInMinutes)/60));
+			text_layer_set_text(&calendar_date_layer, date_time_for_appt); 	
+			layer_set_hidden(&animated_layer[CALENDAR_LAYER], 0);
+			vibes_short_pulse();
+		} else if((apptInMinutes < timeInMinutes) && (((timeInMinutes - apptInMinutes) / 60) > 0) && (((timeInMinutes - apptInMinutes) % 60) > 0)) {
 			snprintf(date_time_for_appt, 20, "Depuis %dh %dmin", 
 					 (int)((timeInMinutes - apptInMinutes)/60),(int)((timeInMinutes - apptInMinutes)%60));
 			text_layer_set_text(&calendar_date_layer, date_time_for_appt); 	
@@ -392,6 +397,8 @@ void rcv(DictionaryIterator *received, void *context) {
 		bitmap_layer_set_bitmap(&weather_image, &weather_status_imgs[t->value->uint8].bmp);	  	
 	}
 
+	
+	
 	t=dict_find(received, SM_COUNT_BATTERY_KEY); 
 	if (t!=NULL) {
 		batteryPercent = t->value->uint8;
