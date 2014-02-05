@@ -4,7 +4,7 @@
 
 #include "globals.h"
 
-#define WATCHFACE 1
+#define WATCHFACE 0
 #define MY_UUID { 0x91, 0x41, 0xB6, 0x28, 0xBC, 0x89, 0x49, 0x8E, 0xB1, 0x47, 0x04, 0x9F, 0x49, 0xC0, 0x99, 0xAD } 
 //it seems like changing UUID makes the app unable to retrieve datas from phone
 			PBL_APP_INFO(MY_UUID,
@@ -22,7 +22,7 @@
 #define NUM_WEATHER_IMAGES	8
 #define VIBE_ON_HOUR true
 
-typedef enum {CALENDAR_LAYER, MUSIC_LAYER, NUM_LAYERS} AnimatedLayers;
+typedef enum {CALENDAR_LAYER, MUSIC_LAYER,  NUM_LAYERS} AnimatedLayers;
 
 
 AppMessageResult sm_message_out_get(DictionaryIterator **iter_out);
@@ -72,8 +72,8 @@ static int weather_img, batteryPercent;
 
 static char calendar_date_str[STRING_LENGTH], calendar_text_str[STRING_LENGTH];
 static char music_artist_str[STRING_LENGTH], music_title_str[STRING_LENGTH];
-static char sms_count_str[5], mail_count_str[5], phone_count_str[5]; //For Jailbreak !
 static bool music_is_playing = false;
+static char sms_count_str[5], mail_count_str[5], phone_count_str[5]; //For Jailbreak ! Maybe I'll implement it
 
 static char appointment_time[50];
 
@@ -404,7 +404,7 @@ void rcv(DictionaryIterator *received, void *context) {
 	if (t!=NULL) {
 		bitmap_layer_set_bitmap(&weather_image, &weather_status_imgs[t->value->uint8].bmp);	  	
 	}
-
+/*    // This is Jailbreak Section
 	t=dict_find(received, SM_COUNT_MAIL_KEY); 
         if (t!=NULL) {
                 memcpy(mail_count_str, t->value->cstring, strlen(t->value->cstring));
@@ -416,21 +416,21 @@ void rcv(DictionaryIterator *received, void *context) {
         if (t!=NULL) {
                 memcpy(sms_count_str, t->value->cstring, strlen(t->value->cstring));
         sms_count_str[strlen(t->value->cstring)] = '\0';
-                //text_layer_set_text(&text_sms_layer, sms_count_str);         
+                text_layer_set_text(&text_sms_layer, sms_count_str);         
         }
 
         t=dict_find(received, SM_COUNT_PHONE_KEY); 
         if (t!=NULL) {
                 memcpy(phone_count_str, t->value->cstring, strlen(t->value->cstring));
         phone_count_str[strlen(t->value->cstring)] = '\0';
-                //text_layer_set_text(&text_phone_layer, phone_count_str);         
+                text_layer_set_text(&text_phone_layer, phone_count_str);         
         }
 
         t=dict_find(received, SM_WEATHER_ICON_KEY); 
         if (t!=NULL) {
                 bitmap_layer_set_bitmap(&weather_image, &weather_status_imgs[t->value->uint8].bmp);                  
         }
-	
+	*/    //This was Jailbreak Section
 	t=dict_find(received, SM_COUNT_BATTERY_KEY); 
 	if (t!=NULL) {
 		batteryPercent = t->value->uint8;
