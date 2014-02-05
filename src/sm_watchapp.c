@@ -48,6 +48,7 @@ void reset();
 AppContextRef g_app_context;
 
 bool Watch_Face_Initialized = false;
+bool Precision_Is_Seconds = false;
 
 static Window window;
 static PropertyAnimation ani_out, ani_in;
@@ -242,14 +243,19 @@ void apptDisplay() {
 			}  	
 		}  else if (apptInMinutes == 0) { 
 			snprintf(date_time_for_appt, 20, "Aucun");
-				// Change lines above for time format, current is days/months
 			text_layer_set_text(&calendar_date_layer, date_time_for_appt);; 	
 			layer_set_hidden(&animated_layer[CALENDAR_LAYER], 0);  	
         } else if(timeInMinutes - apptInMinutes == 1) {
 			snprintf(date_time_for_appt, 20, "Depuis %d minute", (int)(timeInMinutes - apptInMinutes));
 			text_layer_set_text(&calendar_date_layer, date_time_for_appt); 	
 			layer_set_hidden(&animated_layer[CALENDAR_LAYER], 0);  	
-		} else if((apptInMinutes < timeInMinutes) && (((timeInMinutes - apptInMinutes) / 60) > 0)) {
+		} else if((apptInMinutes < timeInMinutes) && (((timeInMinutes - apptInMinutes) % 60) == 0)) {
+			snprintf(date_time_for_appt, 20, "Depuis %dh", 
+					 (int)((timeInMinutes - apptInMinutes)/60));
+			text_layer_set_text(&calendar_date_layer, date_time_for_appt); 	
+			layer_set_hidden(&animated_layer[CALENDAR_LAYER], 0);
+			vibes_short_pulse();
+		} else if((apptInMinutes < timeInMinutes) && (((timeInMinutes - apptInMinutes) / 60) > 0) && (((timeInMinutes - apptInMinutes) % 60) > 0)) {
 			snprintf(date_time_for_appt, 20, "Depuis %dh %dmin", 
 					 (int)((timeInMinutes - apptInMinutes)/60),(int)((timeInMinutes - apptInMinutes)%60));
 			text_layer_set_text(&calendar_date_layer, date_time_for_appt); 	
@@ -263,6 +269,11 @@ void apptDisplay() {
 				snprintf(date_time_for_appt, 20, "Dans %dh %dm", 
 						 (int)((apptInMinutes - timeInMinutes) / 60),
 						 (int)((apptInMinutes - timeInMinutes) % 60));
+			} else if ((apptInMinutes - timeInMinutes) <= 1 ) {  // Décompte en secondes
+				int timeInSeconds = t.tm_sec;
+				snprintf(date_time_for_appt, 20, "Dans %d secondes", (int)(60 - timeInSeconds));
+				Precision_Is_Seconds = true;
+							// On va pas faire chier pour le 's' quand il reste 1 seconde hein !
 			} else {
 				snprintf(date_time_for_appt, 20, "Dans %d minutes", (int)(apptInMinutes - timeInMinutes));
 			}
@@ -272,6 +283,7 @@ void apptDisplay() {
 			text_layer_set_text(&calendar_date_layer, "Maintenant!"); 	
 			layer_set_hidden(&animated_layer[CALENDAR_LAYER], 0);  	
 			vibes_double_pulse();
+			Precision_Is_Seconds = false;
 		} 
 		
 		//Vibrate if event is in 15 minutes
@@ -283,6 +295,7 @@ void apptDisplay() {
 }
 
 // End of calendar appointment utilities
+
 
 
 AppMessageResult sm_message_out_get(DictionaryIterator **iter_out) {
@@ -790,7 +803,7 @@ int seconds = time.tm_sec;    //Get the current number of seconds
 	}
 
 // EXECUTE THE FOLLOWING ONLY ONCE PER MINUTE
-	if ((seconds == 0) || (!Watch_Face_Initialized)) {	
+	if ((seconds == 0) || (!Watch_Face_Initialized) || (Precision_Is_Seconds)) {	
 	
 		Watch_Face_Initialized = true;
 static char time_text[] = "00:00";
