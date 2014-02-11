@@ -4,14 +4,15 @@
 
 #define STRING_LENGTH 255
 #define NUM_WEATHER_IMAGES	9
-#define VIBE_ON_HOUR true
 
 
 	// Mes variables
-bool Watch_Face_Initialized = false;
-bool Precision_Is_Seconds = false;
+static bool Watch_Face_Initialized = false;
+static bool Precision_Is_Seconds = false;
 static bool music_is_playing = false;
-static char appointment_time[50];
+static char appointment_time[30];
+static int compteur = 0; //I know it's not right, but timer is not working anymore with SDK 2.0 RC :'( 
+static char MusicBuffer[10] = "No Title";
 	
 	
 enum {CALENDAR_LAYER, MUSIC_LAYER, NUM_LAYERS};
@@ -128,10 +129,8 @@ static int timestr2minutes(char *timestr) {
 }
 
 void apptDisplay() {
-	int apptInMinutes, timeInMinutes, apptInDays, timeInDays, apptInMonths, timeInMonths;
+	static int apptInMinutes, timeInMinutes, apptInDays, timeInDays, apptInMonths, timeInMonths;
 	static char date_time_for_appt[] = "00/00 00:00 XXXXXXX";
-	// format of appointment_time : "MM/DD 12:34PM LOCATIONXXXX" or "MM/DD all-day LOCATIONXXXX"
-	// format of appointment_time : "0--3—-6----11-------------"
 	time_t now;
 	struct tm *t;
 	
@@ -140,8 +139,8 @@ void apptDisplay() {
 		
 	
 	// Make sure it's not an all day event
-	bool appt_is_all_day(char *time) { 
-		if (time[6] == 'a' && time[7] == 'l') {
+	bool appt_is_all_day(char *horaire) { 
+		if (horaire[6] == 'a' && horaire[7] == 'l') {
 			return true;
 		} else { return false; }
 	}
@@ -185,9 +184,9 @@ void apptDisplay() {
 	apptInMonths = string2number(textBuffer);
 	timeInMonths = (t->tm_mon + 1);
 	  
-	  APP_LOG(APP_LOG_LEVEL_DEBUG, "apptDisplay: %d, %d", (int)apptInMinutes, (int)timeInMinutes);  
+	  APP_LOG(APP_LOG_LEVEL_DEBUG, "apptDisplay: Appointment Time is %d minutes. Time in Minutes is %d", (int)apptInMinutes, (int)timeInMinutes);  
 	
-	/* Manage appoitment notification */
+	// Manage appoitment notification
 	
 	if(apptInMinutes >= 0) {
 		//if(apptInMinutes < timeInMinutes) {
@@ -245,29 +244,45 @@ void apptDisplay() {
 			} else if ((apptInMinutes - timeInMinutes) <= 1 ) {  // Décompte en secondes
 				int timeInSeconds = t->tm_sec;
 				snprintf(date_time_for_appt, 20, "Dans %d secondes", (int)(60 - timeInSeconds));
-				Precision_Is_Seconds = true;
+				if (timeInSeconds > 1){Precision_Is_Seconds = true;}
+							// On va pas faire chier pour le 's' quand il reste 1 seconde hein !
+			} else if ((apptInMinutes - timeInMinutes) <= 2 ) {  // Décompte en secondes
+				int timeInSeconds = t->tm_sec;
+				//Vibrate if event is in 15 minutes
+					if((timeInSeconds == 0) && ((apptInMinutes - timeInMinutes) == 15)) {
+											vibes_short_pulse();
+									}
+				snprintf(date_time_for_appt, 20, "Dans 1 minute %d", (int)(60 - timeInSeconds));
+				if (timeInSeconds > 1){Precision_Is_Seconds = true;}
+							// On va pas faire chier pour le 's' quand il reste 1 seconde hein !
+			} else if ((apptInMinutes - timeInMinutes) <= 15 ) {  // Décompte en secondes
+				int timeInSeconds = t->tm_sec;
+				//Vibrate if event is in 15 minutes
+					if((timeInSeconds == 0) && ((apptInMinutes - timeInMinutes) == 15)) {
+											vibes_short_pulse();
+									}
+				snprintf(date_time_for_appt, 20, "Dans %d minutes %d", (int)(apptInMinutes - timeInMinutes - 1), (int)(60 - timeInSeconds));
+				if (timeInSeconds > 1){Precision_Is_Seconds = true;}
 							// On va pas faire chier pour le 's' quand il reste 1 seconde hein !
 			} else {
 				snprintf(date_time_for_appt, 20, "Dans %d minutes", (int)(apptInMinutes - timeInMinutes));
 			}
 			text_layer_set_text(calendar_date_layer, date_time_for_appt); 	
 			layer_set_hidden(animated_layer[CALENDAR_LAYER], 0);  	
-		}else if(apptInMinutes == timeInMinutes) {
+		} else if (apptInMinutes == timeInMinutes) {
+			Precision_Is_Seconds = false;
 			text_layer_set_text(calendar_date_layer, "Maintenant!"); 	
 			layer_set_hidden(animated_layer[CALENDAR_LAYER], 0);  	
 			vibes_double_pulse();
-			Precision_Is_Seconds = false;
 		} 
 		
-		//Vibrate if event is in 15 minutes
-		if((apptInMinutes >= timeInMinutes) && ((apptInMinutes - timeInMinutes) == 15)) {
-			vibes_short_pulse();
-		}
+		
 	} // Appointment minutes are positive test
   } // Appointment is all day test
+APP_LOG(APP_LOG_LEVEL_DEBUG, "apptDisplay finished the work :D");
 }
 
-// End of calendar appointment utilities
+// End of calendar appointment utilities */
 
 AppMessageResult sm_message_out_get(DictionaryIterator **iter_out) {
     AppMessageResult result = app_message_outbox_begin(iter_out);
@@ -308,30 +323,7 @@ void sendCommandInt(int key, int param) {
 }
 
 
-
-
-
-static void select_click_down_handler(ClickRecognizerRef recognizer, void *context) {
-	//show the weather condition instead of temperature while center button is pressed
-	layer_set_hidden(text_layer_get_layer(text_weather_temp_layer), true);
-	layer_set_hidden(text_layer_get_layer(text_weather_cond_layer), false);
-}
-
-static void select_click_up_handler(ClickRecognizerRef recognizer, void *context) {
-	//revert to showing the temperature 
-	layer_set_hidden(text_layer_get_layer(text_weather_temp_layer), false);
-	layer_set_hidden(text_layer_get_layer(text_weather_cond_layer), true);
-}
-
-
-static void up_click_handler(ClickRecognizerRef recognizer, void *context) {
-	//update all data
-	reset();
-	
-	sendCommandInt(SM_SCREEN_ENTER_KEY, STATUS_SCREEN_APP);
-}
-
-static void down_click_handler(ClickRecognizerRef recognizer, void *context) {
+static void switchLayer() {
 	//slide layers in/out
 
 	property_animation_destroy((PropertyAnimation*)ani_in);
@@ -348,13 +340,19 @@ static void down_click_handler(ClickRecognizerRef recognizer, void *context) {
 	animation_schedule((Animation*)ani_in);
 
 
+		APP_LOG(APP_LOG_LEVEL_DEBUG, "Switched Layers");
 }
 
+/*
 static void click_config_provider(void *context) {
   window_raw_click_subscribe(BUTTON_ID_SELECT, select_click_down_handler, select_click_up_handler, context);
   window_single_click_subscribe(BUTTON_ID_UP, up_click_handler);
   window_single_click_subscribe(BUTTON_ID_DOWN, down_click_handler);
 }
+
+*/
+// If you reenable, you'll need the functions. I deleted them for space
+// You'll CLICK CONFIG PROVIDER (CMD-F search-it, it's deactivated)
 
 static void window_load(Window *window) {
   Layer *window_layer = window_get_root_layer(window);
@@ -411,23 +409,129 @@ void reset() {
 	
 	layer_set_hidden(text_layer_get_layer(text_weather_temp_layer), true);
 	layer_set_hidden(text_layer_get_layer(text_weather_cond_layer), false);
-	text_layer_set_text(text_weather_cond_layer, "Updating..."); 	
+	text_layer_set_text(text_weather_cond_layer, "Mise a jour..."); 	
 	
 }
 
-
-void handle_minute_tick(struct tm *tick_time, TimeUnits units_changed) {
-  // Need to be static because they're used by the system later.
-  static char time_text[] = "00:00";
-  static char date_text[] = "Xxxxxxxxx 00";
-
+									
+void handle_second_tick(struct tm *tick_time, TimeUnits units_changed) {
+	if ((Precision_Is_Seconds) || ((units_changed & MINUTE_UNIT) == MINUTE_UNIT)) {apptDisplay();}
+	// Display music if any is playing
+	if ( ((tick_time->tm_sec % 10) == 5) && (music_is_playing) && (active_layer != MUSIC_LAYER)) {
+		switchLayer();
+	} else if ( ((tick_time->tm_sec % 10) == 0) && (active_layer == MUSIC_LAYER) ) {
+		switchLayer();
+	}
+	if (compteur > 0) {
+		compteur = (compteur - 1) ;
+		if (compteur == 0) {
+			music_is_playing = false;
+		}
+	}
+if (((units_changed & MINUTE_UNIT) == MINUTE_UNIT) || (!Watch_Face_Initialized) ){
+	// Need to be static because they're used by the system later.
+	static char time_text[] = "00:00";
+	APP_LOG(APP_LOG_LEVEL_DEBUG, "Time for a Change! I'm so EXCITED");
   char *time_format;
 
+	int heure = tick_time->tm_hour;
 
-  // TODO: Only update the date when it's changed.
-  strftime(date_text, sizeof(date_text), "%a, %b %e", tick_time);
-  text_layer_set_text(text_date_layer, date_text);
-
+	
+  // TODO: Only update the date when it's changed. // DONE ! Even with SECOND ticks
+	if ((units_changed & DAY_UNIT) == DAY_UNIT|| (!Watch_Face_Initialized) ){
+		  Watch_Face_Initialized = true;
+  static char date_text[] = "Xxx 00 Xxx";
+	// Check 24h mode to know how to handle date
+  if (clock_is_24h_style()) {
+   
+	     // Format is 24h, so TRANSLATE !  
+   strftime(date_text, sizeof(date_text), "%a %e %b", tick_time); //EU mode
+  APP_LOG(APP_LOG_LEVEL_DEBUG,"DATE is %s", date_text);
+   text_layer_set_text(text_date_layer, date_text);
+	  APP_LOG(APP_LOG_LEVEL_DEBUG,"I got the date in European Version. Or should I say... Non-english one?");
+	  // Primitive hack to translate the day of week to another language
+			// Needs to be exactly 3 characters, e.g. "Mon" or "Mo "
+			// Supported characters: A-Z, a-z, 0-9
+			
+			if (date_text[0] == 'M')
+			{
+				memcpy(&date_text, "Lun", 3); // Monday
+			}
+			
+			if (date_text[0] == 'T' && date_text[1] == 'u')
+			{
+				memcpy(&date_text, "Mar", 3); // Tuesday
+			}
+			
+			if (date_text[0] == 'W')
+			{
+				memcpy(&date_text, "Mer", 3); // Wednesday
+			}
+			
+			if (date_text[0] == 'T' && date_text[1] == 'h')
+			{
+				memcpy(&date_text, "Jeu", 3); // Thursday
+			}
+			
+			if (date_text[0] == 'F')
+			{
+				memcpy(&date_text, "Ven", 3); // Friday
+			}
+			
+			if (date_text[0] == 'S' && date_text[1] == 'a')
+			{
+				memcpy(&date_text, "Sam", 3); // Saturday
+			}
+			
+			if (date_text[0] == 'S' && date_text[1] == 'u')
+			{
+				memcpy(&date_text, "Dim", 3); // Sunday
+			}
+			
+			
+			 
+			//Primitive Hack to translate month - Only a few are translated because in french, most of the beginnings are similar to english
+			if (date_text[7] == 'F')
+			{
+				memmove(&date_text[7], "Fev", sizeof(date_text)); // Fevrier
+			}
+			
+			if (date_text[7] == 'A' && date_text[9] == 'r')
+			{
+				memmove(&date_text[7], "Avr", sizeof(date_text)); // Avril
+			}
+			
+			if (date_text[7] == 'M' && date_text[9] == 'y')
+			{
+				memmove(&date_text[7], "Mai", sizeof(date_text)); // Mai
+			}
+			
+			if (date_text[7] == 'A' && date_text[9] == 'g')
+			{
+				memmove(&date_text[7], "Aou", sizeof(date_text)); // Aout
+			}
+			
+			
+			
+			//  strcat(date_text, month_text);	
+				
+	if ((date_text[4] == '0') && (date_text[5] == '1')) {
+		memcpy(&date_text[4], "1e", 2); //hack to translate 1 in 1e in French
+	} 
+	else if (date_text[4] == '0') {
+			    // Hack to get rid of the leading zero of the day of month
+	            memmove(&date_text[4], &date_text[5], sizeof(date_text) - 1);
+			    }
+	  
+	  APP_LOG(APP_LOG_LEVEL_INFO, "Translated the date in French. Affichage!");
+	  
+  } else {
+   strftime(date_text, sizeof(date_text), "%a, %b %e", tick_time);
+   text_layer_set_text(text_date_layer, date_text);
+	  APP_LOG(APP_LOG_LEVEL_DEBUG, "Time is set to 12Hr Mode. I didn't translate to French. I still like Croissants though...");
+	  APP_LOG(APP_LOG_LEVEL_INFO, "Displayed date");
+  }
+             }
 
   if (clock_is_24h_style()) {
     time_format = "%R";
@@ -443,9 +547,17 @@ void handle_minute_tick(struct tm *tick_time, TimeUnits units_changed) {
     memmove(time_text, &time_text[1], sizeof(time_text) - 1);
   }
 
+	
+	// Don't forget the "heure" variable if you copy this small paragraph
+  if (((units_changed & HOUR_UNIT) == HOUR_UNIT) && ((heure > 9) && (heure < 23))){
+    vibes_double_pulse();
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Hour changed -> Vibration complete");
+  } else {APP_LOG(APP_LOG_LEVEL_DEBUG, "However, Hour Unit did not change, no vibration");}
+	
   text_layer_set_text(text_time_layer, time_text);
 }
-
+}
+									
 
 void reconnect(void *data) {
 	reset();
@@ -475,9 +587,11 @@ void batteryChanged(BatteryChargeState batt) {
 
 
 static void init(void) {
+
+		APP_LOG(APP_LOG_LEVEL_DEBUG, "Begin Init...");
   window = window_create();
   window_set_fullscreen(window, true);
-  window_set_click_config_provider(window, click_config_provider);
+  //window_set_click_config_provider(window, click_config_provider);             // CLICK CONFIG PROVIDER HERE
   window_set_window_handlers(window, (WindowHandlers) {
     .load = window_load,
     .unload = window_unload,
@@ -555,7 +669,7 @@ static void init(void) {
 	layer_add_child(weather_layer, text_layer_get_layer(text_weather_cond_layer));
 
 	layer_set_hidden(text_layer_get_layer(text_weather_cond_layer), false);
-	text_layer_set_text(text_weather_cond_layer, "Updating..."); 	
+	text_layer_set_text(text_weather_cond_layer, "Mise a jour..."); 	
 	
 	if (bluetooth_connection_service_peek()) {
 		weather_img = 0;
@@ -608,7 +722,7 @@ static void init(void) {
 	text_layer_set_background_color(calendar_date_layer, GColorClear);
 	text_layer_set_font(calendar_date_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18));
 	layer_add_child(animated_layer[CALENDAR_LAYER], text_layer_get_layer(calendar_date_layer));
-	text_layer_set_text(calendar_date_layer, "No Upcoming"); 	
+	text_layer_set_text(calendar_date_layer, "Chargement..."); 	
 
 
 	calendar_text_layer = text_layer_create(GRect(6, 15, 132, 28));
@@ -617,7 +731,7 @@ static void init(void) {
 	text_layer_set_background_color(calendar_text_layer, GColorClear);
 	text_layer_set_font(calendar_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
 	layer_add_child(animated_layer[CALENDAR_LAYER], text_layer_get_layer(calendar_text_layer));
-	text_layer_set_text(calendar_text_layer, "Appointment");
+	text_layer_set_text(calendar_text_layer, "Erreur ?");
 	
 	
 	
@@ -631,7 +745,7 @@ static void init(void) {
 	text_layer_set_background_color(music_artist_layer, GColorClear);
 	text_layer_set_font(music_artist_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18));
 	layer_add_child(animated_layer[MUSIC_LAYER], text_layer_get_layer(music_artist_layer));
-	text_layer_set_text(music_artist_layer, "Artist"); 	
+	text_layer_set_text(music_artist_layer, " "); 	
 
 
 	music_song_layer = text_layer_create(GRect(6, 15, 132, 28));
@@ -640,18 +754,23 @@ static void init(void) {
 	text_layer_set_background_color(music_song_layer, GColorClear);
 	text_layer_set_font(music_song_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
 	layer_add_child(animated_layer[MUSIC_LAYER], text_layer_get_layer(music_song_layer));
-	text_layer_set_text(music_song_layer, "Title");
+	text_layer_set_text(music_song_layer, " ");
 
 
 	active_layer = CALENDAR_LAYER;
 
 	reset();
 
-  	tick_timer_service_subscribe(MINUTE_UNIT, handle_minute_tick);
+  	//tick_timer_service_subscribe(MINUTE_UNIT, handle_minute_tick); 
+	// Sorry, but PRECISION is crucial with appointments! 
+	//By the way, the 2nd argument is the name of the fucntion you run each second. I changed it
+	tick_timer_service_subscribe(SECOND_UNIT, handle_second_tick);
 
 	bluetooth_connection_service_subscribe(bluetoothChanged);
 	battery_state_service_subscribe(batteryChanged);
 
+	
+		APP_LOG(APP_LOG_LEVEL_DEBUG, "Init -> DONE");
 }
 
 static void deinit(void) {
@@ -731,6 +850,12 @@ static void updateMusic(void *data) {
 }
 
 
+static void resetMusicCount() {
+	compteur = 120;
+	music_is_playing = true;
+	APP_LOG(APP_LOG_LEVEL_DEBUG, "compteur has been reset, music is now playing");
+}
+
 void rcv(DictionaryIterator *received, void *context) {
 	// Got a message callback
 	Tuple *t;
@@ -767,27 +892,38 @@ void rcv(DictionaryIterator *received, void *context) {
 		text_layer_set_text(text_battery_layer, string_buffer ); 	
 	}
 
-	t=dict_find(received, SM_STATUS_CAL_TIME_KEY); 
-	if (t!=NULL) {
-		memcpy(calendar_date_str, t->value->cstring, strlen(t->value->cstring));
-        calendar_date_str[strlen(t->value->cstring)] = '\0';				
-		text_layer_set_text(calendar_date_layer, calendar_date_str); 	
-	}
+	t=dict_find(received, SM_STATUS_CAL_TIME_KEY);   // I changed this if that's what you're looking for
+ 	if (t!=NULL) {
+ 		memcpy(calendar_date_str, t->value->cstring, strlen(t->value->cstring));
+          calendar_date_str[strlen(t->value->cstring)] = '\0';
+ 		//text_layer_set_text(&calendar_date_layer, calendar_date_str); 	
+  		strncpy(appointment_time, calendar_date_str, 30); //Copy time to appointment_time so that apptDisplay can use it
+		APP_LOG(APP_LOG_LEVEL_INFO, "Just RECEIVED appointment time : %s", appointment_time);
+		//APP_LOG(APP_LOG_LEVEL_WARNING, "[DEBUG_HERE]Launching Appointment Module [apptDisplay]");
+		apptDisplay();
+  	}
 
 	t=dict_find(received, SM_STATUS_CAL_TEXT_KEY); 
 	if (t!=NULL) {
-		memcpy(calendar_text_str, t->value->cstring, strlen(t->value->cstring));
-        calendar_text_str[strlen(t->value->cstring)] = '\0';
-		text_layer_set_text(calendar_text_layer, calendar_text_str); 	
-	}
-
-
+ 		memcpy(calendar_text_str, t->value->cstring, strlen(t->value->cstring));
+         calendar_text_str[strlen(t->value->cstring)] = '\0';
+ 		text_layer_set_text(calendar_text_layer, calendar_text_str); 	
+ 		// Resize Calendar text if needed
+ 		if(strlen(calendar_text_str) <= 15)
+ 			text_layer_set_font(calendar_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
+ 		else
+ 			if(strlen(calendar_text_str) <= 18)
+ 				text_layer_set_font(calendar_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
+ 			else 
+ 				text_layer_set_font(calendar_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_14_BOLD));
+ 	}
+	
 	t=dict_find(received, SM_STATUS_MUS_ARTIST_KEY); 
 	if (t!=NULL) {
 		memcpy(music_artist_str1, t->value->cstring, strlen(t->value->cstring));
 
         music_artist_str1[strlen(t->value->cstring)] = '\0';
-		text_layer_set_text(music_artist_layer, music_artist_str1); 	
+		text_layer_set_text(music_artist_layer, music_artist_str1);
 	}
 
 	t=dict_find(received, SM_STATUS_MUS_TITLE_KEY); 
@@ -795,7 +931,13 @@ void rcv(DictionaryIterator *received, void *context) {
 		memcpy(music_title_str1, t->value->cstring, strlen(t->value->cstring));
 
         music_title_str1[strlen(t->value->cstring)] = '\0';
-		text_layer_set_text(music_song_layer, music_title_str1); 	
+		text_layer_set_text(music_song_layer, music_title_str1);
+		if ((strcmp(MusicBuffer,music_title_str1) != 0) && (strcmp("No Title",music_title_str1) != 0)) {
+		APP_LOG(APP_LOG_LEVEL_DEBUG, "New Music Title received");
+		resetMusicCount();
+		switchLayer();
+		strcpy(MusicBuffer, music_title_str1);
+		}
 	}
 
 
@@ -820,11 +962,10 @@ void rcv(DictionaryIterator *received, void *context) {
 	t=dict_find(received, SM_SONG_LENGTH_KEY); 
 	if (t!=NULL) {
 		int interval = t->value->int32 * 1000;
-
 		if (timerUpdateMusic != NULL)
 			app_timer_cancel(timerUpdateMusic);
 		timerUpdateMusic = app_timer_register(interval , updateMusic, NULL);
-
+	APP_LOG(APP_LOG_LEVEL_DEBUG, "SM_SONG_LENGTH is not NULL! Interval = %i",interval); //I wonder what this call does. I added this debug to clarify
 	}
 
 }

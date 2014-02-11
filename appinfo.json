@@ -1,9 +1,7 @@
 {
     "versionLabel": "1.0.0",
     "uuid": "e944c919-7ae9-4737-8033-ac073a1b8a90",
-    "appKeys": {
-        "dummy": 0
-    },
+    "appKeys": {},
     "longName": "SmartStatus",
     "versionCode": 1,
     "capabilities": [
@@ -16,6 +14,11 @@
     },
     "resources": {
         "media": [
+            {
+                "type": "png",
+                "name": "IMAGE_BATTERY",
+                "file": "images/battery.png"
+            },
             {
                 "characterRegex": "[:0-9]",
                 "type": "font",
@@ -36,11 +39,6 @@
                 "type": "png",
                 "name": "IMAGE_BATTERY_PHONE",
                 "file": "images/battery_phone.png"
-            },
-            {
-                "type": "png",
-                "name": "IMAGE_BATTERY",
-                "file": "images/battery.png"
             },
             {
                 "type": "png",
