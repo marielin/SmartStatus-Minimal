@@ -12,7 +12,7 @@
     "shortName": "SmartStatus",
     "companyName": "Robert Hesse",
     "watchapp": {
-        "watchface": false
+        "watchface": true
     },
     "resources": {
         "media": [
