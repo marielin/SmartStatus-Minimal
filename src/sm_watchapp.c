@@ -4,15 +4,14 @@
 
 #define STRING_LENGTH 255
 #define NUM_WEATHER_IMAGES	9
+#define VIBE_ON_HOUR true
 
 
 	// Mes variables
-static bool Watch_Face_Initialized = false;
-static bool Precision_Is_Seconds = false;
+bool Watch_Face_Initialized = false;
+bool Precision_Is_Seconds = false;
 static bool music_is_playing = false;
-static char appointment_time[30];
-static int compteur = 0; //I know it's not right, but timer is not working anymore with SDK 2.0 RC :'( 
-static char MusicBuffer[10] = "No Title";
+static char appointment_time[50];
 	
 	
 enum {CALENDAR_LAYER, MUSIC_LAYER, NUM_LAYERS};
@@ -323,7 +322,30 @@ void sendCommandInt(int key, int param) {
 }
 
 
-static void switchLayer() {
+
+
+
+static void select_click_down_handler(ClickRecognizerRef recognizer, void *context) {
+	//show the weather condition instead of temperature while center button is pressed
+	layer_set_hidden(text_layer_get_layer(text_weather_temp_layer), true);
+	layer_set_hidden(text_layer_get_layer(text_weather_cond_layer), false);
+}
+
+static void select_click_up_handler(ClickRecognizerRef recognizer, void *context) {
+	//revert to showing the temperature 
+	layer_set_hidden(text_layer_get_layer(text_weather_temp_layer), false);
+	layer_set_hidden(text_layer_get_layer(text_weather_cond_layer), true);
+}
+
+
+static void up_click_handler(ClickRecognizerRef recognizer, void *context) {
+	//update all data
+	reset();
+	
+	sendCommandInt(SM_SCREEN_ENTER_KEY, STATUS_SCREEN_APP);
+}
+
+static void down_click_handler(ClickRecognizerRef recognizer, void *context) {
 	//slide layers in/out
 
 	property_animation_destroy((PropertyAnimation*)ani_in);
@@ -340,19 +362,13 @@ static void switchLayer() {
 	animation_schedule((Animation*)ani_in);
 
 
-		APP_LOG(APP_LOG_LEVEL_DEBUG, "Switched Layers");
 }
 
-/*
 static void click_config_provider(void *context) {
   window_raw_click_subscribe(BUTTON_ID_SELECT, select_click_down_handler, select_click_up_handler, context);
   window_single_click_subscribe(BUTTON_ID_UP, up_click_handler);
   window_single_click_subscribe(BUTTON_ID_DOWN, down_click_handler);
 }
-
-*/
-// If you reenable, you'll need the functions. I deleted them for space
-// You'll CLICK CONFIG PROVIDER (CMD-F search-it, it's deactivated)
 
 static void window_load(Window *window) {
   Layer *window_layer = window_get_root_layer(window);
@@ -409,13 +425,14 @@ void reset() {
 	
 	layer_set_hidden(text_layer_get_layer(text_weather_temp_layer), true);
 	layer_set_hidden(text_layer_get_layer(text_weather_cond_layer), false);
-	text_layer_set_text(text_weather_cond_layer, "Mise a jour..."); 	
+	text_layer_set_text(text_weather_cond_layer, "Updating..."); 	
 	
 }
 
-									
+
 void handle_second_tick(struct tm *tick_time, TimeUnits units_changed) {
-	if ((Precision_Is_Seconds) || ((units_changed & MINUTE_UNIT) == MINUTE_UNIT)) {apptDisplay();}
+	if ((Precision_Is_Seconds) || ((units_changed & MINUTE_UNIT) == MINUTE_UNIT) || (!Watch_Face_Initialized)) {apptDisplay();}
+	/*   //Future implementation
 	// Display music if any is playing
 	if ( ((tick_time->tm_sec % 10) == 5) && (music_is_playing) && (active_layer != MUSIC_LAYER)) {
 		switchLayer();
@@ -427,7 +444,7 @@ void handle_second_tick(struct tm *tick_time, TimeUnits units_changed) {
 		if (compteur == 0) {
 			music_is_playing = false;
 		}
-	}
+	}*/
 if (((units_changed & MINUTE_UNIT) == MINUTE_UNIT) || (!Watch_Face_Initialized) ){
 	// Need to be static because they're used by the system later.
 	static char time_text[] = "00:00";
@@ -524,6 +541,7 @@ if (((units_changed & MINUTE_UNIT) == MINUTE_UNIT) || (!Watch_Face_Initialized) 
 			    }
 	  
 	  APP_LOG(APP_LOG_LEVEL_INFO, "Translated the date in French. Affichage!");
+	  apptDisplay();
 	  
   } else {
    strftime(date_text, sizeof(date_text), "%a, %b %e", tick_time);
@@ -557,7 +575,7 @@ if (((units_changed & MINUTE_UNIT) == MINUTE_UNIT) || (!Watch_Face_Initialized) 
   text_layer_set_text(text_time_layer, time_text);
 }
 }
-									
+
 
 void reconnect(void *data) {
 	reset();
@@ -587,11 +605,9 @@ void batteryChanged(BatteryChargeState batt) {
 
 
 static void init(void) {
-
-		APP_LOG(APP_LOG_LEVEL_DEBUG, "Begin Init...");
   window = window_create();
   window_set_fullscreen(window, true);
-  //window_set_click_config_provider(window, click_config_provider);             // CLICK CONFIG PROVIDER HERE
+  window_set_click_config_provider(window, click_config_provider);
   window_set_window_handlers(window, (WindowHandlers) {
     .load = window_load,
     .unload = window_unload,
@@ -669,7 +685,7 @@ static void init(void) {
 	layer_add_child(weather_layer, text_layer_get_layer(text_weather_cond_layer));
 
 	layer_set_hidden(text_layer_get_layer(text_weather_cond_layer), false);
-	text_layer_set_text(text_weather_cond_layer, "Mise a jour..."); 	
+	text_layer_set_text(text_weather_cond_layer, "Updating..."); 	
 	
 	if (bluetooth_connection_service_peek()) {
 		weather_img = 0;
@@ -722,7 +738,7 @@ static void init(void) {
 	text_layer_set_background_color(calendar_date_layer, GColorClear);
 	text_layer_set_font(calendar_date_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18));
 	layer_add_child(animated_layer[CALENDAR_LAYER], text_layer_get_layer(calendar_date_layer));
-	text_layer_set_text(calendar_date_layer, "Chargement..."); 	
+	text_layer_set_text(calendar_date_layer, "No Upcoming"); 	
 
 
 	calendar_text_layer = text_layer_create(GRect(6, 15, 132, 28));
@@ -731,7 +747,7 @@ static void init(void) {
 	text_layer_set_background_color(calendar_text_layer, GColorClear);
 	text_layer_set_font(calendar_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
 	layer_add_child(animated_layer[CALENDAR_LAYER], text_layer_get_layer(calendar_text_layer));
-	text_layer_set_text(calendar_text_layer, "Erreur ?");
+	text_layer_set_text(calendar_text_layer, "Appointment");
 	
 	
 	
@@ -745,7 +761,7 @@ static void init(void) {
 	text_layer_set_background_color(music_artist_layer, GColorClear);
 	text_layer_set_font(music_artist_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18));
 	layer_add_child(animated_layer[MUSIC_LAYER], text_layer_get_layer(music_artist_layer));
-	text_layer_set_text(music_artist_layer, " "); 	
+	text_layer_set_text(music_artist_layer, "Artist"); 	
 
 
 	music_song_layer = text_layer_create(GRect(6, 15, 132, 28));
@@ -754,7 +770,7 @@ static void init(void) {
 	text_layer_set_background_color(music_song_layer, GColorClear);
 	text_layer_set_font(music_song_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
 	layer_add_child(animated_layer[MUSIC_LAYER], text_layer_get_layer(music_song_layer));
-	text_layer_set_text(music_song_layer, " ");
+	text_layer_set_text(music_song_layer, "Title");
 
 
 	active_layer = CALENDAR_LAYER;
@@ -769,8 +785,6 @@ static void init(void) {
 	bluetooth_connection_service_subscribe(bluetoothChanged);
 	battery_state_service_subscribe(batteryChanged);
 
-	
-		APP_LOG(APP_LOG_LEVEL_DEBUG, "Init -> DONE");
 }
 
 static void deinit(void) {
@@ -850,12 +864,6 @@ static void updateMusic(void *data) {
 }
 
 
-static void resetMusicCount() {
-	compteur = 120;
-	music_is_playing = true;
-	APP_LOG(APP_LOG_LEVEL_DEBUG, "compteur has been reset, music is now playing");
-}
-
 void rcv(DictionaryIterator *received, void *context) {
 	// Got a message callback
 	Tuple *t;
@@ -899,31 +907,23 @@ void rcv(DictionaryIterator *received, void *context) {
  		//text_layer_set_text(&calendar_date_layer, calendar_date_str); 	
   		strncpy(appointment_time, calendar_date_str, 30); //Copy time to appointment_time so that apptDisplay can use it
 		APP_LOG(APP_LOG_LEVEL_INFO, "Just RECEIVED appointment time : %s", appointment_time);
-		//APP_LOG(APP_LOG_LEVEL_WARNING, "[DEBUG_HERE]Launching Appointment Module [apptDisplay]");
+		APP_LOG(APP_LOG_LEVEL_DEBUG, "Launching Appointment Module [apptDisplay]");
 		apptDisplay();
   	}
-
 	t=dict_find(received, SM_STATUS_CAL_TEXT_KEY); 
 	if (t!=NULL) {
- 		memcpy(calendar_text_str, t->value->cstring, strlen(t->value->cstring));
-         calendar_text_str[strlen(t->value->cstring)] = '\0';
- 		text_layer_set_text(calendar_text_layer, calendar_text_str); 	
- 		// Resize Calendar text if needed
- 		if(strlen(calendar_text_str) <= 15)
- 			text_layer_set_font(calendar_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
- 		else
- 			if(strlen(calendar_text_str) <= 18)
- 				text_layer_set_font(calendar_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
- 			else 
- 				text_layer_set_font(calendar_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_14_BOLD));
- 	}
-	
+		memcpy(calendar_text_str, t->value->cstring, strlen(t->value->cstring));
+        calendar_text_str[strlen(t->value->cstring)] = '\0';
+		text_layer_set_text(calendar_text_layer, calendar_text_str); 	
+	}
+
+
 	t=dict_find(received, SM_STATUS_MUS_ARTIST_KEY); 
 	if (t!=NULL) {
 		memcpy(music_artist_str1, t->value->cstring, strlen(t->value->cstring));
 
         music_artist_str1[strlen(t->value->cstring)] = '\0';
-		text_layer_set_text(music_artist_layer, music_artist_str1);
+		text_layer_set_text(music_artist_layer, music_artist_str1); 	
 	}
 
 	t=dict_find(received, SM_STATUS_MUS_TITLE_KEY); 
@@ -931,13 +931,7 @@ void rcv(DictionaryIterator *received, void *context) {
 		memcpy(music_title_str1, t->value->cstring, strlen(t->value->cstring));
 
         music_title_str1[strlen(t->value->cstring)] = '\0';
-		text_layer_set_text(music_song_layer, music_title_str1);
-		if ((strcmp(MusicBuffer,music_title_str1) != 0) && (strcmp("No Title",music_title_str1) != 0)) {
-		APP_LOG(APP_LOG_LEVEL_DEBUG, "New Music Title received");
-		resetMusicCount();
-		switchLayer();
-		strcpy(MusicBuffer, music_title_str1);
-		}
+		text_layer_set_text(music_song_layer, music_title_str1); 	
 	}
 
 
@@ -962,10 +956,11 @@ void rcv(DictionaryIterator *received, void *context) {
 	t=dict_find(received, SM_SONG_LENGTH_KEY); 
 	if (t!=NULL) {
 		int interval = t->value->int32 * 1000;
+
 		if (timerUpdateMusic != NULL)
 			app_timer_cancel(timerUpdateMusic);
 		timerUpdateMusic = app_timer_register(interval , updateMusic, NULL);
-	APP_LOG(APP_LOG_LEVEL_DEBUG, "SM_SONG_LENGTH is not NULL! Interval = %i",interval); //I wonder what this call does. I added this debug to clarify
+
 	}
 
 }
