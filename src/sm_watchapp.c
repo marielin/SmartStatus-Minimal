@@ -259,6 +259,7 @@ void apptDisplay() {
 				//Vibrate if event is in 15 minutes
 					if((timeInSeconds == 0) && ((apptInMinutes - timeInMinutes) == 15)) {
 											vibes_short_pulse();
+											Precision_Is_Seconds = true;
 									}
 				snprintf(date_time_for_appt, 20, "Dans %d minutes %d", (int)(apptInMinutes - timeInMinutes - 1), (int)(60 - timeInSeconds));
 				if (timeInSeconds > 1){Precision_Is_Seconds = true;}
@@ -425,7 +426,7 @@ void reset() {
 	
 	layer_set_hidden(text_layer_get_layer(text_weather_temp_layer), true);
 	layer_set_hidden(text_layer_get_layer(text_weather_cond_layer), false);
-	text_layer_set_text(text_weather_cond_layer, "Updating..."); 	
+	text_layer_set_text(text_weather_cond_layer, "Mise a jour..."); 	
 	
 }
 
@@ -685,7 +686,7 @@ static void init(void) {
 	layer_add_child(weather_layer, text_layer_get_layer(text_weather_cond_layer));
 
 	layer_set_hidden(text_layer_get_layer(text_weather_cond_layer), false);
-	text_layer_set_text(text_weather_cond_layer, "Updating..."); 	
+	text_layer_set_text(text_weather_cond_layer, "Mise a jour..."); 	
 	
 	if (bluetooth_connection_service_peek()) {
 		weather_img = 0;
@@ -738,7 +739,7 @@ static void init(void) {
 	text_layer_set_background_color(calendar_date_layer, GColorClear);
 	text_layer_set_font(calendar_date_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18));
 	layer_add_child(animated_layer[CALENDAR_LAYER], text_layer_get_layer(calendar_date_layer));
-	text_layer_set_text(calendar_date_layer, "No Upcoming"); 	
+	text_layer_set_text(calendar_date_layer, "Aucun"); 	
 
 
 	calendar_text_layer = text_layer_create(GRect(6, 15, 132, 28));
@@ -747,7 +748,7 @@ static void init(void) {
 	text_layer_set_background_color(calendar_text_layer, GColorClear);
 	text_layer_set_font(calendar_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
 	layer_add_child(animated_layer[CALENDAR_LAYER], text_layer_get_layer(calendar_text_layer));
-	text_layer_set_text(calendar_text_layer, "Appointment");
+	text_layer_set_text(calendar_text_layer, "Evènement");
 	
 	
 	
@@ -761,7 +762,7 @@ static void init(void) {
 	text_layer_set_background_color(music_artist_layer, GColorClear);
 	text_layer_set_font(music_artist_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18));
 	layer_add_child(animated_layer[MUSIC_LAYER], text_layer_get_layer(music_artist_layer));
-	text_layer_set_text(music_artist_layer, "Artist"); 	
+	text_layer_set_text(music_artist_layer, "Aucune lecture"); 	
 
 
 	music_song_layer = text_layer_create(GRect(6, 15, 132, 28));
@@ -770,7 +771,7 @@ static void init(void) {
 	text_layer_set_background_color(music_song_layer, GColorClear);
 	text_layer_set_font(music_song_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
 	layer_add_child(animated_layer[MUSIC_LAYER], text_layer_get_layer(music_song_layer));
-	text_layer_set_text(music_song_layer, "Title");
+	text_layer_set_text(music_song_layer, "en cours");
 
 
 	active_layer = CALENDAR_LAYER;
