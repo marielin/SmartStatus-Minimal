@@ -65,6 +65,12 @@ const int WEATHER_IMG_IDS[] = {
   RESOURCE_ID_IMAGE_DISCONNECT
 };
 
+// Lists of days and months
+          // Translation for DAYS goes here, starting on SUNDAY :
+const char *day_of_week[] = {"Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"};
+
+          // Translation for MONTHS goes here :
+const char *month_of_year[] = { "Janv", "Fevr", "Mars", "Avr", "Mai", "Juin", "Juil", "Aout", "Sept", "Oct", "Nov", "Dec"};   
 
 
 
@@ -459,105 +465,23 @@ if (((units_changed & MINUTE_UNIT) == MINUTE_UNIT) || (!Watch_Face_Initialized) 
 	APP_LOG(APP_LOG_LEVEL_DEBUG, "Time for a Change! I'm so EXCITED");
   char *time_format;
 
-	int heure = tick_time->tm_hour;
+	static int heure = tick_time->tm_hour;
 
 	
   // TODO: Only update the date when it's changed. // DONE ! Even with SECOND ticks
 	if ((units_changed & DAY_UNIT) == DAY_UNIT|| (!Watch_Face_Initialized) ){
 		  Watch_Face_Initialized = true;
-  static char date_text[] = "Xxx 00 Xxx";
-	// Check 24h mode to know how to handle date
-  if (clock_is_24h_style()) {
-   
-	     // Format is 24h, so TRANSLATE !  
-   strftime(date_text, sizeof(date_text), "%a %e %b", tick_time); //EU mode
-  APP_LOG(APP_LOG_LEVEL_DEBUG,"DATE is %s", date_text);
+  	static char date_text[] = "DAY 00 MOIS";
+  		// Get the day and month as int
+  	static int day_int;
+	 day_int = tick_time->tm_wday;
+	static int month_int;
+	 month_int = tick_time->tm_mon;
+	 	// Print the result
+   snprintf(date_text, sizeof(date_text), "%s %i %s", day_of_week[day_int], tick_time->tm_mday, month_of_year[month_int]);
    text_layer_set_text(text_date_layer, date_text);
-	  APP_LOG(APP_LOG_LEVEL_DEBUG,"I got the date in European Version. Or should I say... Non-english one?");
-	  // Primitive hack to translate the day of week to another language
-			// Needs to be exactly 3 characters, e.g. "Mon" or "Mo "
-			// Supported characters: A-Z, a-z, 0-9
-			
-			if (date_text[0] == 'M')
-			{
-				memcpy(&date_text, "Lun", 3); // Monday
-			}
-			
-			if (date_text[0] == 'T' && date_text[1] == 'u')
-			{
-				memcpy(&date_text, "Mar", 3); // Tuesday
-			}
-			
-			if (date_text[0] == 'W')
-			{
-				memcpy(&date_text, "Mer", 3); // Wednesday
-			}
-			
-			if (date_text[0] == 'T' && date_text[1] == 'h')
-			{
-				memcpy(&date_text, "Jeu", 3); // Thursday
-			}
-			
-			if (date_text[0] == 'F')
-			{
-				memcpy(&date_text, "Ven", 3); // Friday
-			}
-			
-			if (date_text[0] == 'S' && date_text[1] == 'a')
-			{
-				memcpy(&date_text, "Sam", 3); // Saturday
-			}
-			
-			if (date_text[0] == 'S' && date_text[1] == 'u')
-			{
-				memcpy(&date_text, "Dim", 3); // Sunday
-			}
-			
-			
-			 
-			//Primitive Hack to translate month - Only a few are translated because in french, most of the beginnings are similar to english
-			if (date_text[7] == 'F')
-			{
-				memmove(&date_text[7], "Fev", sizeof(date_text)); // Fevrier
-			}
-			
-			if (date_text[7] == 'A' && date_text[9] == 'r')
-			{
-				memmove(&date_text[7], "Avr", sizeof(date_text)); // Avril
-			}
-			
-			if (date_text[7] == 'M' && date_text[9] == 'y')
-			{
-				memmove(&date_text[7], "Mai", sizeof(date_text)); // Mai
-			}
-			
-			if (date_text[7] == 'A' && date_text[9] == 'g')
-			{
-				memmove(&date_text[7], "Aou", sizeof(date_text)); // Aout
-			}
-			
-			
-			
-			//  strcat(date_text, month_text);	
-				
-	if ((date_text[4] == '0') && (date_text[5] == '1')) {
-		memcpy(&date_text[4], "1e", 2); //hack to translate 1 in 1e in French
-	} 
-	else if (date_text[4] == '0') {
-			    // Hack to get rid of the leading zero of the day of month
-	            memmove(&date_text[4], &date_text[5], sizeof(date_text) - 1);
-			    }
-	  
-	  APP_LOG(APP_LOG_LEVEL_INFO, "Translated the date in French. Affichage!");
-	  apptDisplay();
-	  
-  } else {
-   strftime(date_text, sizeof(date_text), "%a, %b %e", tick_time);
-   text_layer_set_text(text_date_layer, date_text);
-	  APP_LOG(APP_LOG_LEVEL_DEBUG, "Time is set to 12Hr Mode. I didn't translate to French. I still like Croissants though...");
-	  APP_LOG(APP_LOG_LEVEL_INFO, "Displayed date");
-  }
-             }
+	  APP_LOG(APP_LOG_LEVEL_INFO, "Displayed date : [%s %i %s]", day_of_week[day_int], tick_time->tm_mday, month_of_year[month_int]);
+  	}
 
   if (clock_is_24h_style()) {
     time_format = "%R";
