@@ -93,7 +93,10 @@ static int string2number(char *string) {
 	for(unit = 1; offset >= 0; unit = unit * 10) {
 		letter = string[offset];
 		digit = letter2digit(letter);
-		if(digit == -1) return -1;
+		if(digit == -1){
+			APP_LOG(APP_LOG_LEVEL_WARNING, "string2number had to deal with '%s' as an argument and failed",string);
+			return -1;
+		}
 		result = result + (unit * digit);
 		offset--;
 	}
@@ -128,7 +131,7 @@ static int timestr2minutes(char *timestr) {
 }
 
 void apptDisplay() {
-	static int apptInMinutes, timeInMinutes, apptInDays, timeInDays, apptInMonths, timeInMonths;
+	static int8_t apptInMinutes, timeInMinutes, apptInDays, timeInDays, apptInMonths, timeInMonths;
 	static char date_time_for_appt[] = "00/00 00:00 XXXXXXX";
 	time_t now;
 	struct tm *t;
@@ -177,21 +180,20 @@ void apptDisplay() {
 	timeInMinutes = (t->tm_hour * 60) + t->tm_min;
 		static char textBuffer[] = "00";
 		strncpy(textBuffer, appointment_time + 3,2);
+	  APP_LOG(APP_LOG_LEVEL_DEBUG, "TextBuffer for date is set to : '%s'",textBuffer);
 	apptInDays = string2number(textBuffer);
 	timeInDays = t->tm_mday;
 		strncpy(textBuffer, appointment_time,2);
 	apptInMonths = string2number(textBuffer);
 	timeInMonths = (t->tm_mon + 1);
 	  
-	  APP_LOG(APP_LOG_LEVEL_DEBUG, "apptDisplay: Appointment Time is %d minutes. Time in Minutes is %d", (int)apptInMinutes, (int)timeInMinutes);  
+	  APP_LOG(APP_LOG_LEVEL_DEBUG, "apptDisplay: Appointment Time is %d minutes. Time in Minutes is %d", (int)apptInMinutes, (int)timeInMinutes);
+	  APP_LOG(APP_LOG_LEVEL_DEBUG, "apptDisplay: Appointment Day is %d minutes. Today  is %d", (int)apptInDays, (int)timeInDays);
 	
 	// Manage appoitment notification
 	
-	if(apptInMinutes >= 0) {
-		//if(apptInMinutes < timeInMinutes) {
-			//layer_set_hidden(&calendar_layer, 1); 	
-		//}
-		if ((apptInDays > timeInDays)||(apptInMonths > timeInMonths)) {
+	if ((apptInDays > timeInDays)||(apptInMonths > timeInMonths)) {
+		APP_LOG(APP_LOG_LEVEL_DEBUG, "Thus, appointment is not today");
 			if ((apptInMinutes == 0) && (apptInDays - timeInDays == 1)) { 
 			snprintf(date_time_for_appt, 20, "A Minuit");
 				// Change lines above for time format, current is days/months
@@ -212,7 +214,12 @@ void apptDisplay() {
 					  text_layer_set_text(calendar_date_layer, date_time_for_appt); 	
 					  layer_set_hidden(animated_layer[CALENDAR_LAYER], 0);
 			}  	
-		}  else if (apptInMinutes == 0) { 
+		} else if(apptInMinutes >= 0) {
+		APP_LOG(APP_LOG_LEVEL_DEBUG, "Thus, appointment is today, and not past yet");
+		//if(apptInMinutes < timeInMinutes) {
+			//layer_set_hidden(&calendar_layer, 1); 	
+		//}
+		 if (apptInMinutes == 0) { 
 			snprintf(date_time_for_appt, 20, "Aucun");
 			text_layer_set_text(calendar_date_layer, date_time_for_appt);; 	
 			layer_set_hidden(animated_layer[CALENDAR_LAYER], 0);  	
@@ -911,13 +918,21 @@ void rcv(DictionaryIterator *received, void *context) {
 		APP_LOG(APP_LOG_LEVEL_DEBUG, "Launching Appointment Module [apptDisplay]");
 		apptDisplay();
   	}
+	
 	t=dict_find(received, SM_STATUS_CAL_TEXT_KEY); 
 	if (t!=NULL) {
 		memcpy(calendar_text_str, t->value->cstring, strlen(t->value->cstring));
         calendar_text_str[strlen(t->value->cstring)] = '\0';
 		text_layer_set_text(calendar_text_layer, calendar_text_str); 	
+		// Resize Calendar text if needed
+		if(strlen(calendar_text_str) <= 15)
+			text_layer_set_font(calendar_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
+		else
+			if(strlen(calendar_text_str) <= 18)
+				text_layer_set_font(calendar_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
+			else 
+				text_layer_set_font(calendar_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_14_BOLD));
 	}
-
 
 	t=dict_find(received, SM_STATUS_MUS_ARTIST_KEY); 
 	if (t!=NULL) {
