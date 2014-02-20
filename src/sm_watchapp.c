@@ -90,11 +90,12 @@ int letter2digit(char letter) {
 
 /* Convert string to number */
 static int string2number(char *string) {
-	int32_t result = 0;
-	int32_t offset = strlen(string) - 1;
-	int32_t digit = -1;
-	int32_t unit = 1;
-	int8_t letter;	
+	static int32_t result = 0;
+	static int32_t offset;
+		offset = strlen(string) - 1;
+	static int32_t digit = -1;
+	static int32_t unit = 1;
+	static int8_t letter;	
 
 	for(unit = 1; offset >= 0; unit = unit * 10) {
 		letter = string[offset];
@@ -114,8 +115,8 @@ static int string2number(char *string) {
 static int timestr2minutes(char *timestr) {
 	//timestr = "00:00PM XXXX..." or "0:00PM XXXX..."
 	static char hourStr[3], minStr[3];
-	int32_t hour, min;
-	int8_t hDigits = 2;
+	static int32_t hour, min;
+	static int8_t hDigits = 2;
 
 	if(timestr[1] == ':') hDigits = 1;
 	
@@ -123,16 +124,22 @@ static int timestr2minutes(char *timestr) {
 	strncpy(minStr, timestr+hDigits+1, 2);
 	
 	hour = string2number(hourStr);
-	if(hour == -1) return -1;
+	if(hour == -1) {
+		APP_LOG(APP_LOG_LEVEL_ERROR, "timestr2minutes failed. Argument was : '%s' ",timestr);
+		return -1;
+	}
 	
 	min = string2number(minStr);
-	if(min == -1) return -1;
+	if(min == -1) {
+		APP_LOG(APP_LOG_LEVEL_ERROR, "timestr2minutes failed. Argument was : '%s' ",timestr);
+		return -1;
+	}
 	
 	//Manage AM/PM
 	if ((timestr[4] == 'P') || (appointment_time[5] == 'P')) {
             hour += 12;
-        }
-	
+	}
+	APP_LOG(APP_LOG_LEVEL_DEBUG, "timestr2minutes(%s) -> %i",timestr, (int)(min + (hour * 60)));
 	return min + (hour * 60);
 }
 
@@ -194,7 +201,7 @@ void apptDisplay() {
 	timeInMonths = (t->tm_mon + 1);
 	  
 	  APP_LOG(APP_LOG_LEVEL_DEBUG, "apptDisplay: Appointment Time is %d minutes. Time in Minutes is %d", (int)apptInMinutes, (int)timeInMinutes);
-	  APP_LOG(APP_LOG_LEVEL_DEBUG, "apptDisplay: Appointment Day is %d minutes. Today  is %d", (int)apptInDays, (int)timeInDays);
+	  APP_LOG(APP_LOG_LEVEL_DEBUG, "apptDisplay: Appointment Day is %d. Today  is %d", (int)apptInDays, (int)timeInDays);
 	
 	// Manage appoitment notification
 	
@@ -465,7 +472,8 @@ if (((units_changed & MINUTE_UNIT) == MINUTE_UNIT) || (!Watch_Face_Initialized) 
 	APP_LOG(APP_LOG_LEVEL_DEBUG, "Time for a Change! I'm so EXCITED");
   char *time_format;
 
-	static int heure = tick_time->tm_hour;
+	static int heure;
+	heure = tick_time->tm_hour;
 
 	
   // TODO: Only update the date when it's changed. // DONE ! Even with SECOND ticks
