@@ -11,14 +11,13 @@
 static bool Watch_Face_Initialized = false;
 static bool Precision_Is_Seconds = false;
 static bool music_is_playing = false;
-	
+static char last_text[] = "No Title";
 	
 enum {CALENDAR_LAYER, MUSIC_LAYER, NUM_LAYERS};
 
 static void reset();
 
 static Window *window;
-//static TextLayer *text_layer;
 
 static PropertyAnimation *ani_out, *ani_in;
 
@@ -49,6 +48,7 @@ GBitmap *weather_status_imgs[NUM_WEATHER_IMAGES];
 static AppTimer *timerUpdateCalendar = NULL;
 static AppTimer *timerUpdateWeather = NULL;
 static AppTimer *timerUpdateMusic = NULL;
+static AppTimer *hideMusicLayer = NULL;
 
 
 
@@ -69,7 +69,11 @@ const int WEATHER_IMG_IDS[] = {
 const char *day_of_week[] = {"Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"};
 
           // Translation for MONTHS goes here :
-const char *month_of_year[] = { "Janv", "Fevr", "Mars", "Avr", "Mai", "Juin", "Juil", "Aout", "Sept", "Oct", "Nov", "Dec"};   
+const char *month_of_year[] = { "Janv", "Fevr", "Mars", "Avr", "Mai", "Juin", "Juil", "Aout", "Sept", "Oct", "Nov", "Dec"};
+const int days_per_month [12] = {31,28,31,30,31,30,31,31,30,31,30,31};
+
+const char *days_from_today[] = { "Demain", "Après-demain", "Dans 3 jours", "Dans 4 jours" };
+const char *before_after[] = {"Depuis", "Dans"};
 
 
 
@@ -119,7 +123,7 @@ static int string2number(char *string) {
 static void apptDisplay(char *appt_string) {
 	
 	// Make sure there is no error in argument
-	APP_LOG(APP_LOG_LEVEL_INFO, "apptDisplay started with argument '%s' ", appt_string);
+	APP_LOG(APP_LOG_LEVEL_INFO, "apptDisplay started with argument (%s)", appt_string);
 	if (appt_string[0] == '\0') {
 		APP_LOG(APP_LOG_LEVEL_WARNING, "appt_string is empty! ABORTING apptDisplay");
 		return;
@@ -133,13 +137,13 @@ static void apptDisplay(char *appt_string) {
 	// Init some variables
 	static char date_time_for_appt[20]; // = "Le XX XXXX à ##h##";
 	static char stringBuffer[]="XX";
-	APP_LOG(APP_LOG_LEVEL_INFO, "INIT : stringBuffer = '%s' ", stringBuffer);
 	time_t now;
 	struct tm *t;
 	now = time(NULL);
 	t = localtime(&now);
 	static bool event_is_today = false;
 	static bool event_is_all_day = false;
+	static bool event_is_past = false;
 	
 		//	Determine the variables
 	static int appt_day;
@@ -185,27 +189,63 @@ static void apptDisplay(char *appt_string) {
 	 min_now = t->tm_min;
 	 mday_now = t->tm_mday;
 	 mon_now = t->tm_mon + 1;
-	 APP_LOG(APP_LOG_LEVEL_DEBUG,"INIT : mon_now = '%i' ", mon_now);
 		// Check the DAY and Month of Appointment and write it in date_of_appt
-	static char date_of_appt[20];
+	static char date_of_appt[30];
 	int interm = (appt_month - 1);
-				APP_LOG(APP_LOG_LEVEL_DEBUG,"INIT : date_of_appt = '%s' ", date_of_appt);
-				if ((appt_day < (mday_now) && ((mon_now) == appt_month)) || ((mon_now) > appt_month ) ) {
-					snprintf(date_of_appt,20, "Depuis le %i %s",appt_day, month_of_year[interm]);
+	static int days_difference = 0;
+	if (mon_now != appt_month) {
+		if ((mon_now - appt_month > 1) || (mon_now - appt_month < -1)) {
+			days_difference = 40; // Set a high value to display the date then
+		} else if (appt_month < mon_now){ // Event has begun last month
+			days_difference = ((mday_now) + (days_per_month[(appt_month + 1)] - appt_day));
+			event_is_past = true;
+		} else if (appt_month > mon_now){ // Event will begin next month
+			days_difference = ((days_per_month[(mday_now + 1)] - mon_now) + appt_day);
+		}
+	} else {
+		days_difference = (appt_day - mday_now);
+		if (days_difference < 0) { // That means appointment day is before today
+			event_is_past = true;
+		}
+	}
+				if (event_is_past) {
+					snprintf(date_of_appt,30, "Depuis le %i %s",appt_day, month_of_year[interm]);
 					event_is_all_day = true;
 					APP_LOG(APP_LOG_LEVEL_DEBUG,"Event has started in the past, not today");
-				} else if ( ((mday_now + 1) < (appt_day)) || ((mon_now) != appt_month) ) {
-					snprintf(date_of_appt, 20, "Le %i %s à %ih%i",appt_day, month_of_year[interm], appt_hour, appt_minute);
+				} else if (days_difference > 5) {
+					snprintf(date_of_appt, 30, "Le %i %s à %ih%d",appt_day, month_of_year[interm], appt_hour,appt_minute);
 					event_is_today = false; // Just so we don't write the time again
-				} else if ((mday_now + 1) == (appt_day)) {
-					snprintf(date_of_appt,20, "Demain à %ih%i",appt_hour, appt_minute);
+				} else if (days_difference != 0) {
+					snprintf(date_of_appt, 30, "%s, à %ih%d", month_of_year[interm], appt_hour,appt_minute);
 					event_is_today = false; // Just so we don't write the time again
-				} else {
+				} else if (days_difference == 0) {
 					event_is_today = true;
+				} else {
+					APP_LOG(APP_LOG_LEVEL_ERROR, "days_difference tests failed :(");
+					return;
 				}
 		// Check the Hour and write it in time_string
 	 static char time_string[20];
-				APP_LOG(APP_LOG_LEVEL_DEBUG,"INIT : time_string = '%s' ", time_string);
+	 void display_hour (int hour_since, int minutes_since, int quand) {
+	 	if ((minutes_since == 0) && hour_since == 0) {
+						snprintf(time_string,20, "Maintenant !");
+					} else if (minutes_since == 0) {
+						if (hour_since == 1){
+							snprintf(time_string,20, "%s 1 heure",before_after[quand]);
+						} else {
+							snprintf(time_string,20, "%s %i heures",before_after[quand], hour_since);
+						}
+					} else if (hour_since == 0) {
+						if (minutes_since == 1){
+							snprintf(time_string,20, "%s 1 minute",before_after[quand]);
+						} else {
+							snprintf(time_string,20, "%s %i minutes",before_after[quand],minutes_since);
+						}
+					} else {
+						snprintf(time_string,20, "%s %ih %i", before_after[quand], hour_since, minutes_since);
+					}
+	  }
+
 				if ((event_is_all_day) || (!event_is_today)) {
 					APP_LOG(APP_LOG_LEVEL_DEBUG, "Do nothing with hour and minutes");
 				} else if (((hour_now) > appt_hour) || (((hour_now) == appt_hour) && (min_now >= appt_minute))) {
@@ -220,23 +260,7 @@ static void apptDisplay(char *appt_string) {
 						minutes_since += 60;
 					}
 					
-					if ((minutes_since == 0) && hour_since == 0) {
-						snprintf(time_string,20, "Maintenant !");
-					} else if (minutes_since == 0) {
-						if (hour_since == 1){
-							snprintf(time_string,20, "Depuis 1 heure");
-						} else {
-							snprintf(time_string,20, "Depuis %i heures",hour_since);
-						}
-					} else if (hour_since == 0) {
-						if (minutes_since == 1){
-							snprintf(time_string,20, "Depuis 1 minute");
-						} else {
-							snprintf(time_string,20, "Depuis %i minutes",minutes_since);
-						}
-					} else {
-						snprintf(time_string,20, "Depuis %ih %i",hour_since, minutes_since);
-					}
+					display_hour(hour_since,minutes_since,0);
 
 				} else if (((hour_now) < appt_hour) || (((hour_now) == appt_hour) && (min_now < appt_minute))) {
 					int hour_difference = 0;
@@ -250,21 +274,7 @@ static void apptDisplay(char *appt_string) {
 						minutes_difference += 60;
 					}
 					
-					if (minutes_difference == 0) {
-						if (hour_difference == 1){
-							snprintf(time_string,20, "Dans 1 heure");
-						} else {
-							snprintf(time_string,20, "Dans %i heures",hour_difference);
-						}
-					} else if (hour_difference == 0) {
-						if (minutes_difference == 1){
-							snprintf(time_string,20, "Dans 1 minute");
-						} else {
-							snprintf(time_string,20, "Dans %i minutes",minutes_difference);
-						}
-					} else {
-						snprintf(time_string,20, "Dans %ih %i",hour_difference, minutes_difference);
-					}
+					display_hour(hour_difference,minutes_difference,1);
 				}
 
 	strcpy (date_time_for_appt,date_of_appt);
@@ -343,6 +353,10 @@ static void up_click_handler(ClickRecognizerRef recognizer, void *context) {
 }
 
 static void down_click_handler(ClickRecognizerRef recognizer, void *context) {
+	sendCommand(SM_NEXT_TRACK_KEY);
+}
+
+static void animate_layers(){
 	//slide layers in/out
 
 	property_animation_destroy((PropertyAnimation*)ani_in);
@@ -352,13 +366,19 @@ static void down_click_handler(ClickRecognizerRef recognizer, void *context) {
 	ani_out = property_animation_create_layer_frame(animated_layer[active_layer], &GRect(0, 124, 143, 45), &GRect(-138, 124, 143, 45));
 	animation_schedule((Animation*)ani_out);
 
+	if ((hideMusicLayer != NULL) && (active_layer == MUSIC_LAYER)) {
+		app_timer_cancel(hideMusicLayer);
+		hideMusicLayer = NULL;
+	}
 
 	active_layer = (active_layer + 1) % (NUM_LAYERS);
 
 	ani_in = property_animation_create_layer_frame(animated_layer[active_layer], &GRect(138, 124, 144, 45), &GRect(0, 124, 144, 45));
 	animation_schedule((Animation*)ani_in);
+}
 
-
+static void auto_switch(void *data){
+	if (active_layer == MUSIC_LAYER) {animate_layers();}
 }
 
 static void click_config_provider(void *context) {
@@ -429,24 +449,10 @@ void reset() {
 
 void handle_second_tick(struct tm *tick_time, TimeUnits units_changed) {
 	if ((Precision_Is_Seconds) || ((units_changed & MINUTE_UNIT) == MINUTE_UNIT) || (!Watch_Face_Initialized)) {apptDisplay(calendar_date_str);}
-	/*   //Future implementation
-	// Display music if any is playing
-	if ( ((tick_time->tm_sec % 10) == 5) && (music_is_playing) && (active_layer != MUSIC_LAYER)) {
-		switchLayer();
-	} else if ( ((tick_time->tm_sec % 10) == 0) && (active_layer == MUSIC_LAYER) ) {
-		switchLayer();
-	}
-	if (compteur > 0) {
-		compteur = (compteur - 1) ;
-		if (compteur == 0) {
-			music_is_playing = false;
-		}
-	}*/
 if (((units_changed & MINUTE_UNIT) == MINUTE_UNIT) || (!Watch_Face_Initialized) ){
 	// Need to be static because they're used by the system later.
 	static char time_text[] = "00:00";
-	APP_LOG(APP_LOG_LEVEL_DEBUG, "Time for a Change! I'm so EXCITED");
-  char *time_format;
+	char *time_format;
 
 	static int heure;
 	heure = tick_time->tm_hour;
@@ -663,7 +669,7 @@ static void init(void) {
 	text_layer_set_background_color(calendar_text_layer, GColorClear);
 	text_layer_set_font(calendar_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
 	layer_add_child(animated_layer[CALENDAR_LAYER], text_layer_get_layer(calendar_text_layer));
-	text_layer_set_text(calendar_text_layer, "Evènement");
+	text_layer_set_text(calendar_text_layer, "Rendez-vous");
 	
 	
 	
@@ -677,7 +683,7 @@ static void init(void) {
 	text_layer_set_background_color(music_artist_layer, GColorClear);
 	text_layer_set_font(music_artist_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18));
 	layer_add_child(animated_layer[MUSIC_LAYER], text_layer_get_layer(music_artist_layer));
-	text_layer_set_text(music_artist_layer, "Aucune lecture"); 	
+	text_layer_set_text(music_artist_layer, "No Artist"); 	
 
 
 	music_song_layer = text_layer_create(GRect(6, 15, 132, 28));
@@ -686,17 +692,15 @@ static void init(void) {
 	text_layer_set_background_color(music_song_layer, GColorClear);
 	text_layer_set_font(music_song_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
 	layer_add_child(animated_layer[MUSIC_LAYER], text_layer_get_layer(music_song_layer));
-	text_layer_set_text(music_song_layer, "en cours");
+	text_layer_set_text(music_song_layer, "No Title");
 
 
 	active_layer = CALENDAR_LAYER;
 
 	reset();
 
-  	//tick_timer_service_subscribe(MINUTE_UNIT, handle_minute_tick); 
-	// Sorry, but PRECISION is crucial with appointments! 
-	//By the way, the 2nd argument is the name of the fucntion you run each second. I changed it
-	tick_timer_service_subscribe(SECOND_UNIT, handle_second_tick);
+  	//tick_timer_service_subscribe(MINUTE_UNIT, handle_minute_tick);
+	tick_timer_service_subscribe(MINUTE_UNIT, handle_second_tick);
 
 	bluetooth_connection_service_subscribe(bluetoothChanged);
 	battery_state_service_subscribe(batteryChanged);
@@ -852,9 +856,14 @@ void rcv(DictionaryIterator *received, void *context) {
 	t=dict_find(received, SM_STATUS_MUS_TITLE_KEY); 
 	if (t!=NULL) {
 		memcpy(music_title_str1, t->value->cstring, strlen(t->value->cstring));
-
         music_title_str1[strlen(t->value->cstring)] = '\0';
-		text_layer_set_text(music_song_layer, music_title_str1); 	
+		APP_LOG(APP_LOG_LEVEL_DEBUG,"New music title received is %s",music_title_str1);
+		text_layer_set_text(music_song_layer, music_title_str1);
+		if ((strncmp(last_text,music_title_str1,8) != 0) && (strncmp(music_title_str1,"No Title",8) != 0)) {
+			strncpy(last_text,music_title_str1,8);
+			animate_layers();
+			hideMusicLayer = app_timer_register(5000 , auto_switch, NULL);
+		}
 	}
 
 
@@ -879,7 +888,7 @@ void rcv(DictionaryIterator *received, void *context) {
 	t=dict_find(received, SM_SONG_LENGTH_KEY); 
 	if (t!=NULL) {
 		int interval = t->value->int32 * 1000;
-
+		
 		if (timerUpdateMusic != NULL)
 			app_timer_cancel(timerUpdateMusic);
 		timerUpdateMusic = app_timer_register(interval , updateMusic, NULL);
