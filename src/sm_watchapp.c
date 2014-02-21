@@ -8,10 +8,9 @@
 
 
 	// Mes variables
-bool Watch_Face_Initialized = false;
-bool Precision_Is_Seconds = false;
+static bool Watch_Face_Initialized = false;
+static bool Precision_Is_Seconds = false;
 static bool music_is_playing = false;
-static char appointment_time[50];
 	
 	
 enum {CALENDAR_LAYER, MUSIC_LAYER, NUM_LAYERS};
@@ -19,7 +18,7 @@ enum {CALENDAR_LAYER, MUSIC_LAYER, NUM_LAYERS};
 static void reset();
 
 static Window *window;
-static TextLayer *text_layer;
+//static TextLayer *text_layer;
 
 static PropertyAnimation *ani_out, *ani_in;
 
@@ -81,16 +80,20 @@ static uint32_t s_sequence_number = 0xFFFFFFFE;
 
 /* Convert letter to digit */
 int letter2digit(char letter) {
+	if (letter == '\0') {
+		APP_LOG(APP_LOG_LEVEL_ERROR, "letter2digit failed!");
+		return -1;
+	}
 	if((letter >= 48) && (letter <=57)) {
 		return letter - 48;
 	}
-	
+	APP_LOG(APP_LOG_LEVEL_ERROR, "letter2digit(%c) failed", letter);
 	return -1;
 }
 
 /* Convert string to number */
 static int string2number(char *string) {
-	static int32_t result = 0;
+	int result = 0;
 	static int32_t offset;
 		offset = strlen(string) - 1;
 	static int32_t digit = -1;
@@ -107,199 +110,169 @@ static int string2number(char *string) {
 		result = result + (unit * digit);
 		offset--;
 	}
-	
+	APP_LOG(APP_LOG_LEVEL_DEBUG, "string2number(%s) -> %i", string, result);
 	return result;
 }
 
-/* Convert time string ("HH:MM") to number of minutes */
-static int timestr2minutes(char *timestr) {
-	//timestr = "00:00PM XXXX..." or "0:00PM XXXX..."
-	static char hourStr[3], minStr[3];
-	static int32_t hour, min;
-	static int8_t hDigits = 2;
+// XX/XX 8:30 BLABLABLA
+// 0123456789
+static void apptDisplay(char *appt_string) {
+	
+	// Make sure there is no error in argument
+	APP_LOG(APP_LOG_LEVEL_INFO, "apptDisplay started with argument '%s' ", appt_string);
+	if (appt_string[0] == '\0') {
+		APP_LOG(APP_LOG_LEVEL_WARNING, "appt_string is empty! ABORTING apptDisplay");
+		return;
+	} else if (sizeof(appt_string) != 4) {
+		APP_LOG(APP_LOG_LEVEL_WARNING, "appt_string is too small (%i characters)! ABORTING apptDisplay", (int)(sizeof(appt_string)));
+			text_layer_set_text(calendar_date_layer, appt_string); 	
+			layer_set_hidden(animated_layer[CALENDAR_LAYER], 0);
+		return;
+	}
 
-	if(timestr[1] == ':') hDigits = 1;
-	
-	strncpy(hourStr, timestr, hDigits);
-	strncpy(minStr, timestr+hDigits+1, 2);
-	
-	hour = string2number(hourStr);
-	if(hour == -1) {
-		APP_LOG(APP_LOG_LEVEL_ERROR, "timestr2minutes failed. Argument was : '%s' ",timestr);
-		return -1;
-	}
-	
-	min = string2number(minStr);
-	if(min == -1) {
-		APP_LOG(APP_LOG_LEVEL_ERROR, "timestr2minutes failed. Argument was : '%s' ",timestr);
-		return -1;
-	}
-	
-	//Manage AM/PM
-	if ((timestr[4] == 'P') || (appointment_time[5] == 'P')) {
-            hour += 12;
-	}
-	APP_LOG(APP_LOG_LEVEL_DEBUG, "timestr2minutes(%s) -> %i",timestr, (int)(min + (hour * 60)));
-	return min + (hour * 60);
-}
-
-void apptDisplay() {
-	static int8_t apptInMinutes, timeInMinutes, apptInDays, timeInDays, apptInMonths, timeInMonths;
-	static char date_time_for_appt[] = "00/00 00:00 XXXXXXX";
+	// Init some variables
+	static char date_time_for_appt[20]; // = "Le XX XXXX à ##h##";
+	static char stringBuffer[]="XX";
+	APP_LOG(APP_LOG_LEVEL_INFO, "INIT : stringBuffer = '%s' ", stringBuffer);
 	time_t now;
 	struct tm *t;
-	
 	now = time(NULL);
 	t = localtime(&now);
+	static bool event_is_today = false;
+	static bool event_is_all_day = false;
+	
+		//	Determine the variables
+	static int appt_day;
+					strncpy(stringBuffer, appt_string,2);
+					APP_LOG(APP_LOG_LEVEL_INFO, "stringBuffer = '%s' ", stringBuffer);
+					appt_day = string2number(stringBuffer);
+				APP_LOG(APP_LOG_LEVEL_DEBUG,"appt_day is %i",appt_day);
+
+	static int appt_month;
+					strncpy(stringBuffer, appt_string+3,2);
+					appt_month = string2number(stringBuffer);
+				APP_LOG(APP_LOG_LEVEL_DEBUG,"appt_month is %i",appt_month);
+
+	static int appt_hour;
+					if (appt_string[7] == ':'){
+						strncpy(stringBuffer, appt_string+5,2);
+						stringBuffer[0]='0';
+						appt_hour = string2number(stringBuffer);
+					} else if (appt_string[8] == ':') {
+						strncpy(stringBuffer, appt_string+6,2);
+						appt_hour = string2number(stringBuffer);
+					} else {
+						APP_LOG(APP_LOG_LEVEL_DEBUG,"Event is ALL DAY");
+						event_is_all_day = true;
+					}
+				APP_LOG(APP_LOG_LEVEL_DEBUG,"appt_hour is %i",appt_hour);
+
+	static int appt_minute;
+					if (appt_string[7] == ':'){
+						strncpy(stringBuffer, appt_string+8,2);
+						appt_minute = string2number(stringBuffer);
+					} else if (appt_string[8] == ':') {
+						strncpy(stringBuffer, appt_string+9,2);
+						appt_minute = string2number(stringBuffer);
+					} else {APP_LOG(APP_LOG_LEVEL_ERROR, "appt_minute cannot be determined...");}
+				APP_LOG(APP_LOG_LEVEL_DEBUG,"appt_minute is %i",appt_minute);
 		
-	
-	// Make sure it's not an all day event
-	bool appt_is_all_day(char *horaire) { 
-		if (horaire[6] == 'a' && horaire[7] == 'l') {
-			return true;
-		} else { return false; }
-	}
-	
-  if (appt_is_all_day(appointment_time)) {      //  EVENT IS AN ALL DAY EVENT
-	  // Assign values
-	static char textBuffer[] = "00";
-		strncpy(textBuffer, appointment_time + 3,2);
-	apptInDays = string2number(textBuffer);
-	timeInDays = t->tm_mday;
-	  APP_LOG(APP_LOG_LEVEL_DEBUG, "Time in days is %i", timeInDays);
-		strncpy(textBuffer, appointment_time,2);
-	apptInMonths = string2number(textBuffer);
-	timeInMonths = (t->tm_mon + 1); 
-	  
-	  if (apptInDays - timeInDays == 1) {
-				snprintf(date_time_for_appt, 20, "Demain");
-				text_layer_set_text(calendar_date_layer, date_time_for_appt); 	
-				layer_set_hidden(animated_layer[CALENDAR_LAYER], 0);
-				} else if (apptInDays == timeInDays) {
-				      snprintf(date_time_for_appt, 20, "Aujourd'hui");
-				// Change lines above for time format, current is days/months
-					  text_layer_set_text(calendar_date_layer, date_time_for_appt); 	
-					  layer_set_hidden(animated_layer[CALENDAR_LAYER], 0);
-			} else {
-				      snprintf(date_time_for_appt, 20, "Le %d/%d", apptInDays, apptInMonths);
-				// Change lines above for time format, current is days/months
-					  text_layer_set_text(calendar_date_layer, date_time_for_appt); 	
-					  layer_set_hidden(animated_layer[CALENDAR_LAYER], 0);
-				    } 
-  } else {
-		// First, we assign values
-	  
-	apptInMinutes = timestr2minutes(appointment_time + 6);
-	timeInMinutes = (t->tm_hour * 60) + t->tm_min;
-		static char textBuffer[] = "00";
-		strncpy(textBuffer, appointment_time + 3,2);
-	  APP_LOG(APP_LOG_LEVEL_DEBUG, "TextBuffer for date is set to : '%s'",textBuffer);
-	apptInDays = string2number(textBuffer);
-	timeInDays = t->tm_mday;
-		strncpy(textBuffer, appointment_time,2);
-	apptInMonths = string2number(textBuffer);
-	timeInMonths = (t->tm_mon + 1);
-	  
-	  APP_LOG(APP_LOG_LEVEL_DEBUG, "apptDisplay: Appointment Time is %d minutes. Time in Minutes is %d", (int)apptInMinutes, (int)timeInMinutes);
-	  APP_LOG(APP_LOG_LEVEL_DEBUG, "apptDisplay: Appointment Day is %d. Today  is %d", (int)apptInDays, (int)timeInDays);
-	
-	// Manage appoitment notification
-	
-	if ((apptInDays > timeInDays)||(apptInMonths > timeInMonths)) {
-		APP_LOG(APP_LOG_LEVEL_DEBUG, "Thus, appointment is not today");
-			if ((apptInMinutes == 0) && (apptInDays - timeInDays == 1)) { 
-			snprintf(date_time_for_appt, 20, "A Minuit");
-				// Change lines above for time format, current is days/months
-			text_layer_set_text(calendar_date_layer, date_time_for_appt);; 	
-			layer_set_hidden(animated_layer[CALENDAR_LAYER], 0);  	
-			} else if ((apptInDays - timeInDays == 1) && (((apptInMinutes) % 60) == 0)) {
-				snprintf(date_time_for_appt, 20, "Demain, %dh", (int)((apptInMinutes)/ 60));
-				text_layer_set_text(calendar_date_layer, date_time_for_appt); 	
-				layer_set_hidden(animated_layer[CALENDAR_LAYER], 0);
-            } else if (apptInDays - timeInDays == 1) {
-				snprintf(date_time_for_appt, 20, "Demain, %dh %d", (int)((apptInMinutes)/ 60),(int)((apptInMinutes) % 60));
-				text_layer_set_text(calendar_date_layer, date_time_for_appt); 	
-				layer_set_hidden(animated_layer[CALENDAR_LAYER], 0);
-            } else {
-				      snprintf(date_time_for_appt, 20, "%d/%d %dh %d", apptInDays, apptInMonths, (int)((apptInMinutes)/ 60),
-							   (int)((apptInMinutes) % 60));
-				// Change lines above for time format, current is days/months
-					  text_layer_set_text(calendar_date_layer, date_time_for_appt); 	
-					  layer_set_hidden(animated_layer[CALENDAR_LAYER], 0);
-			}  	
-		} else if(apptInMinutes >= 0) {
-		APP_LOG(APP_LOG_LEVEL_DEBUG, "Thus, appointment is today, and not past yet");
-		//if(apptInMinutes < timeInMinutes) {
-			//layer_set_hidden(&calendar_layer, 1); 	
-		//}
-		 if (apptInMinutes == 0) { 
-			snprintf(date_time_for_appt, 20, "Aucun");
-			text_layer_set_text(calendar_date_layer, date_time_for_appt);; 	
-			layer_set_hidden(animated_layer[CALENDAR_LAYER], 0);  	
-        } else if(timeInMinutes - apptInMinutes == 1) {
-			snprintf(date_time_for_appt, 20, "Depuis %d minute", (int)(timeInMinutes - apptInMinutes));
-			text_layer_set_text(calendar_date_layer, date_time_for_appt); 	
-			layer_set_hidden(animated_layer[CALENDAR_LAYER], 0);  	
-		} else if((apptInMinutes < timeInMinutes) && (((timeInMinutes - apptInMinutes) % 60) == 0)) {
-			snprintf(date_time_for_appt, 20, "Depuis %dh", 
-					 (int)((timeInMinutes - apptInMinutes)/60));
-			text_layer_set_text(calendar_date_layer, date_time_for_appt); 	
-			layer_set_hidden(animated_layer[CALENDAR_LAYER], 0);
-			vibes_short_pulse();
-		} else if((apptInMinutes < timeInMinutes) && (((timeInMinutes - apptInMinutes) / 60) > 0) && (((timeInMinutes - apptInMinutes) % 60) > 0)) {
-			snprintf(date_time_for_appt, 20, "Depuis %dh %dmin", 
-					 (int)((timeInMinutes - apptInMinutes)/60),(int)((timeInMinutes - apptInMinutes)%60));
-			text_layer_set_text(calendar_date_layer, date_time_for_appt); 	
-			layer_set_hidden(animated_layer[CALENDAR_LAYER], 0);  	
-		} else if(apptInMinutes < timeInMinutes) {
-			snprintf(date_time_for_appt, 20, "Depuis %d minutes", (int)(timeInMinutes - apptInMinutes));
-			text_layer_set_text(calendar_date_layer, date_time_for_appt); 	
-			layer_set_hidden(animated_layer[CALENDAR_LAYER], 0);  	
-		} else if(apptInMinutes > timeInMinutes) {
-			if(((apptInMinutes - timeInMinutes) / 60) > 0) {
-				snprintf(date_time_for_appt, 20, "Dans %dh %dm", 
-						 (int)((apptInMinutes - timeInMinutes) / 60),
-						 (int)((apptInMinutes - timeInMinutes) % 60));
-			} else if ((apptInMinutes - timeInMinutes) <= 1 ) {  // Décompte en secondes
-				int timeInSeconds = t->tm_sec;
-				snprintf(date_time_for_appt, 20, "Dans %d secondes", (int)(60 - timeInSeconds));
-				if (timeInSeconds > 1){Precision_Is_Seconds = true;}
-							// On va pas faire chier pour le 's' quand il reste 1 seconde hein !
-			} else if ((apptInMinutes - timeInMinutes) <= 2 ) {  // Décompte en secondes
-				int timeInSeconds = t->tm_sec;
-				//Vibrate if event is in 15 minutes
-					if((timeInSeconds == 0) && ((apptInMinutes - timeInMinutes) == 15)) {
-											vibes_short_pulse();
-									}
-				snprintf(date_time_for_appt, 20, "Dans 1 minute %d", (int)(60 - timeInSeconds));
-				if (timeInSeconds > 1){Precision_Is_Seconds = true;}
-							// On va pas faire chier pour le 's' quand il reste 1 seconde hein !
-			} else if ((apptInMinutes - timeInMinutes) <= 15 ) {  // Décompte en secondes
-				int timeInSeconds = t->tm_sec;
-				//Vibrate if event is in 15 minutes
-					if((timeInSeconds == 0) && ((apptInMinutes - timeInMinutes) == 15)) {
-											vibes_short_pulse();
-											Precision_Is_Seconds = true;
-									}
-				snprintf(date_time_for_appt, 20, "Dans %d minutes %d", (int)(apptInMinutes - timeInMinutes - 1), (int)(60 - timeInSeconds));
-				if (timeInSeconds > 1){Precision_Is_Seconds = true;}
-							// On va pas faire chier pour le 's' quand il reste 1 seconde hein !
-			} else {
-				snprintf(date_time_for_appt, 20, "Dans %d minutes", (int)(apptInMinutes - timeInMinutes));
-			}
-			text_layer_set_text(calendar_date_layer, date_time_for_appt); 	
-			layer_set_hidden(animated_layer[CALENDAR_LAYER], 0);  	
-		} else if (apptInMinutes == timeInMinutes) {
-			Precision_Is_Seconds = false;
-			text_layer_set_text(calendar_date_layer, "Maintenant!"); 	
-			layer_set_hidden(animated_layer[CALENDAR_LAYER], 0);  	
-			vibes_double_pulse();
-		} 
-		
-		
-	} // Appointment minutes are positive test
-  } // Appointment is all day test
-APP_LOG(APP_LOG_LEVEL_DEBUG, "apptDisplay finished the work :D");
+	 static int hour_now;
+	 static int min_now;
+	 static int mday_now;
+	 static int mon_now;
+	 hour_now = t->tm_hour;
+	 min_now = t->tm_min;
+	 mday_now = t->tm_mday;
+	 mon_now = t->tm_mon + 1;
+	 APP_LOG(APP_LOG_LEVEL_DEBUG,"INIT : mon_now = '%i' ", mon_now);
+		// Check the DAY and Month of Appointment and write it in date_of_appt
+	static char date_of_appt[20];
+	int interm = (appt_month - 1);
+				APP_LOG(APP_LOG_LEVEL_DEBUG,"INIT : date_of_appt = '%s' ", date_of_appt);
+				if ((appt_day < (mday_now) && ((mon_now) == appt_month)) || ((mon_now) > appt_month ) ) {
+					snprintf(date_of_appt,20, "Depuis le %i %s",appt_day, month_of_year[interm]);
+					event_is_all_day = true;
+					APP_LOG(APP_LOG_LEVEL_DEBUG,"Event has started in the past, not today");
+				} else if ( ((mday_now + 1) < (appt_day)) || ((mon_now) != appt_month) ) {
+					snprintf(date_of_appt, 20, "Le %i %s à %ih%i",appt_day, month_of_year[interm], appt_hour, appt_minute);
+					event_is_today = false; // Just so we don't write the time again
+				} else if ((mday_now + 1) == (appt_day)) {
+					snprintf(date_of_appt,20, "Demain à %ih%i",appt_hour, appt_minute);
+					event_is_today = false; // Just so we don't write the time again
+				} else {
+					event_is_today = true;
+				}
+		// Check the Hour and write it in time_string
+	 static char time_string[20];
+				APP_LOG(APP_LOG_LEVEL_DEBUG,"INIT : time_string = '%s' ", time_string);
+				if ((event_is_all_day) || (!event_is_today)) {
+					APP_LOG(APP_LOG_LEVEL_DEBUG, "Do nothing with hour and minutes");
+				} else if (((hour_now) > appt_hour) || (((hour_now) == appt_hour) && (min_now >= appt_minute))) {
+					int hour_since = 0;
+					int minutes_since = 0;
+					minutes_since = ((min_now) - appt_minute);
+					hour_since = ((hour_now) - appt_hour);
+					if (minutes_since == 0) {
+						hour_since += 1;
+					} else if (minutes_since < 0) {
+						hour_since -= 1;
+						minutes_since += 60;
+					}
+					
+					if ((minutes_since == 0) && hour_since == 0) {
+						snprintf(time_string,20, "Maintenant !");
+					} else if (minutes_since == 0) {
+						if (hour_since == 1){
+							snprintf(time_string,20, "Depuis 1 heure");
+						} else {
+							snprintf(time_string,20, "Depuis %i heures",hour_since);
+						}
+					} else if (hour_since == 0) {
+						if (minutes_since == 1){
+							snprintf(time_string,20, "Depuis 1 minute");
+						} else {
+							snprintf(time_string,20, "Depuis %i minutes",minutes_since);
+						}
+					} else {
+						snprintf(time_string,20, "Depuis %ih %i",hour_since, minutes_since);
+					}
+
+				} else if (((hour_now) < appt_hour) || (((hour_now) == appt_hour) && (min_now < appt_minute))) {
+					int hour_difference = 0;
+					int minutes_difference = 0;
+					minutes_difference = (appt_minute - (min_now));
+					hour_difference = (appt_hour - (hour_now));
+					if (minutes_difference == 0) {
+						hour_difference += 1;
+					} else if (minutes_difference < 0) {
+						hour_difference -= 1;
+						minutes_difference += 60;
+					}
+					
+					if (minutes_difference == 0) {
+						if (hour_difference == 1){
+							snprintf(time_string,20, "Dans 1 heure");
+						} else {
+							snprintf(time_string,20, "Dans %i heures",hour_difference);
+						}
+					} else if (hour_difference == 0) {
+						if (minutes_difference == 1){
+							snprintf(time_string,20, "Dans 1 minute");
+						} else {
+							snprintf(time_string,20, "Dans %i minutes",minutes_difference);
+						}
+					} else {
+						snprintf(time_string,20, "Dans %ih %i",hour_difference, minutes_difference);
+					}
+				}
+
+	strcpy (date_time_for_appt,date_of_appt);
+  	strcat (date_time_for_appt,time_string);
+
+
+	text_layer_set_text(calendar_date_layer, date_time_for_appt); 	
+	layer_set_hidden(animated_layer[CALENDAR_LAYER], 0);
 }
 
 // End of calendar appointment utilities */
@@ -359,11 +332,14 @@ static void select_click_up_handler(ClickRecognizerRef recognizer, void *context
 }
 
 
-static void up_click_handler(ClickRecognizerRef recognizer, void *context) {
+/*static void up_click_handler(ClickRecognizerRef recognizer, void *context) {
 	//update all data
 	reset();
 	
 	sendCommandInt(SM_SCREEN_ENTER_KEY, STATUS_SCREEN_APP);
+}*/  // Not Jailbreak
+static void up_click_handler(ClickRecognizerRef recognizer, void *context) {
+	sendCommand(SM_OPEN_SIRI_KEY);
 }
 
 static void down_click_handler(ClickRecognizerRef recognizer, void *context) {
@@ -452,7 +428,7 @@ void reset() {
 
 
 void handle_second_tick(struct tm *tick_time, TimeUnits units_changed) {
-	if ((Precision_Is_Seconds) || ((units_changed & MINUTE_UNIT) == MINUTE_UNIT) || (!Watch_Face_Initialized)) {apptDisplay();}
+	if ((Precision_Is_Seconds) || ((units_changed & MINUTE_UNIT) == MINUTE_UNIT) || (!Watch_Face_Initialized)) {apptDisplay(calendar_date_str);}
 	/*   //Future implementation
 	// Display music if any is playing
 	if ( ((tick_time->tm_sec % 10) == 5) && (music_is_playing) && (active_layer != MUSIC_LAYER)) {
@@ -844,11 +820,10 @@ void rcv(DictionaryIterator *received, void *context) {
  	if (t!=NULL) {
  		memcpy(calendar_date_str, t->value->cstring, strlen(t->value->cstring));
           calendar_date_str[strlen(t->value->cstring)] = '\0';
- 		//text_layer_set_text(&calendar_date_layer, calendar_date_str); 	
-  		strncpy(appointment_time, calendar_date_str, 30); //Copy time to appointment_time so that apptDisplay can use it
-		APP_LOG(APP_LOG_LEVEL_INFO, "Just RECEIVED appointment time : %s", appointment_time);
+ 		//text_layer_set_text(&calendar_date_layer, calendar_date_str);
+		APP_LOG(APP_LOG_LEVEL_DEBUG, "Received DATA for Calendar");
 		APP_LOG(APP_LOG_LEVEL_DEBUG, "Launching Appointment Module [apptDisplay]");
-		apptDisplay();
+		apptDisplay(calendar_date_str);
   	}
 	
 	t=dict_find(received, SM_STATUS_CAL_TEXT_KEY); 

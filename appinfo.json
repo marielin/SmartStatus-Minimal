@@ -1,16 +1,18 @@
 {
-    "versionLabel": "1.0.0",
+    "versionLabel": "2.0.0",
     "uuid": "e944c919-7ae9-4737-8033-ac073a1b8a90",
-    "appKeys": {},
+    "appKeys": {
+    "dummy": 0
+    },
     "longName": "SmartStatus",
     "versionCode": 1,
     "capabilities": [
         ""
     ],
     "shortName": "SmartStatus",
-    "companyName": "Robert Hesse",
+    "companyName": "Alexandre Jouandin",
     "watchapp": {
-        "watchface": true
+        "watchface": false
     },
     "resources": {
         "media": [
