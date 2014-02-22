@@ -2,3 +2,4 @@ wscript
 /build
 .lock-waf_darwin_build
 .bash_profile
+pebble-screenshot*

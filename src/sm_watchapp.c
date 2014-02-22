@@ -208,15 +208,16 @@ static void apptDisplay(char *appt_string) {
 			event_is_past = true;
 		}
 	}
+	APP_LOG(APP_LOG_LEVEL_DEBUG,"Up to here it's ok");
 				if (event_is_past) {
 					snprintf(date_of_appt,30, "Depuis le %i %s",appt_day, month_of_year[interm]);
 					event_is_all_day = true;
 					APP_LOG(APP_LOG_LEVEL_DEBUG,"Event has started in the past, not today");
-				} else if (days_difference > 5) {
+				} else if (days_difference > 4) {
 					snprintf(date_of_appt, 30, "Le %i %s à %ih%d",appt_day, month_of_year[interm], appt_hour,appt_minute);
 					event_is_today = false; // Just so we don't write the time again
 				} else if (days_difference != 0) {
-					snprintf(date_of_appt, 30, "%s, à %ih%d", month_of_year[interm], appt_hour,appt_minute);
+					snprintf(date_of_appt, 30, "%s, à %ih%d", days_from_today[(days_difference - 1)], appt_hour,appt_minute);
 					event_is_today = false; // Just so we don't write the time again
 				} else if (days_difference == 0) {
 					event_is_today = true;
@@ -224,6 +225,7 @@ static void apptDisplay(char *appt_string) {
 					APP_LOG(APP_LOG_LEVEL_ERROR, "days_difference tests failed :(");
 					return;
 				}
+	APP_LOG(APP_LOG_LEVEL_DEBUG,"Up to line 228 it's ok");
 		// Check the Hour and write it in time_string
 	 static char time_string[20];
 	 void display_hour (int hour_since, int minutes_since, int quand) {
