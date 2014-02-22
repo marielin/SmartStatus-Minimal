@@ -9,8 +9,6 @@
 
 	// Mes variables
 static bool Watch_Face_Initialized = false;
-static bool Precision_Is_Seconds = false;
-static bool music_is_playing = false;
 static char last_text[] = "No Title";
 	
 enum {CALENDAR_LAYER, MUSIC_LAYER, NUM_LAYERS};
@@ -448,7 +446,7 @@ void reset() {
 
 
 void handle_second_tick(struct tm *tick_time, TimeUnits units_changed) {
-	if ((Precision_Is_Seconds) || ((units_changed & MINUTE_UNIT) == MINUTE_UNIT) || (!Watch_Face_Initialized)) {apptDisplay(calendar_date_str);}
+	if (((units_changed & MINUTE_UNIT) == MINUTE_UNIT) || (!Watch_Face_Initialized)) {apptDisplay(calendar_date_str);}
 if (((units_changed & MINUTE_UNIT) == MINUTE_UNIT) || (!Watch_Face_Initialized) ){
 	// Need to be static because they're used by the system later.
 	static char time_text[] = "00:00";
@@ -726,8 +724,10 @@ static void deinit(void) {
 	if (timerUpdateMusic != NULL)
 		app_timer_cancel(timerUpdateMusic);
 	timerUpdateMusic = NULL;
-	
 
+	if (hideMusicLayer != NULL)
+		app_timer_cancel(hideMusicLayer);
+	hideMusicLayer = NULL;
 
 	bitmap_layer_destroy(background_image);
 	layer_destroy(weather_layer);
@@ -862,6 +862,8 @@ void rcv(DictionaryIterator *received, void *context) {
 		if ((strncmp(last_text,music_title_str1,8) != 0) && (strncmp(music_title_str1,"No Title",8) != 0)) {
 			strncpy(last_text,music_title_str1,8);
 			animate_layers();
+			if (hideMusicLayer != NULL)
+				app_timer_cancel(hideMusicLayer);
 			hideMusicLayer = app_timer_register(5000 , auto_switch, NULL);
 		}
 	}
