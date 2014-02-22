@@ -5,10 +5,14 @@ SmartFrenchIze Watch App
 ### Téléchargement
 Pour télécharger la **dernière version** : [suivez ce lien](https://github.com/Allezxandre/Smart-FrenchIze-Jailbreak/releases)
 
-### Présentation
+**Attention**, cette Watchface est compatible avec la version AppStore de Smartwatch+ **ET** la version Cydia (pour iOS _jailbreaké_), cependant le bouton du haut (activer Siri) ne fonctionne qu'**avec la version Cydia**
 
-**Attention**, cette Watchface ne fonctionnera qu'avec la version AppStore de Smartwatch+. 
-[Smartwatch+](https://itunes.apple.com/us/app/smartwatch+-for-pebble/id711357931?ls=1&mt=8) est disponible sur l'AppStore
+Pour télécharger Smartwatch+ sur iPhone, vous pouvez vous rendre sur : 
+- L'[AppStore](https://itunes.apple.com/us/app/smartwatch+-for-pebble/id711357931?ls=1&mt=8)
+- [Cydia](http://moreinfo.thebigboss.org/moreinfo/depiction.php?file=smartwatchplusDp)
+
+
+### Présentation
 
 Ceci est une version modifiée de la WatchApp de Robhh. C'est une *WatchApp* se connectant à l'iPhone et affichant des informations, le tout intelligement, et en français.
 Bien sur, cette version modifiée inclut en plus les fonctionnalités de la version originale de base :
