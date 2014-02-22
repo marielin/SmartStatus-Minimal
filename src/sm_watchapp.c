@@ -15,12 +15,7 @@ static char last_text[] = "No Title";
 	
 enum {CALENDAR_LAYER, MUSIC_LAYER, NUM_LAYERS};
 
-<<<<<<< HEAD
-bool Watch_Face_Initialized = false;
-bool Precision_Is_Seconds = false;
-=======
 static void reset();
->>>>>>> Jailbreak-2.0
 
 static Window *window;
 
@@ -138,120 +133,7 @@ static void apptDisplay(char *appt_string) {
 			layer_set_hidden(animated_layer[CALENDAR_LAYER], 0);
 		return;
 	}
-<<<<<<< HEAD
 	
-  if (appt_is_all_day(appointment_time)) {
-		// Assign values
-	static char textBuffer[] = "00";
-		strncpy(textBuffer, appointment_time + 3,2);
-	apptInDays = string2number(textBuffer);
-	timeInDays = t.tm_mday;
-		strncpy(textBuffer, appointment_time,2);
-	apptInMonths = string2number(textBuffer);
-	timeInMonths = (t.tm_mon + 1);
-	  
-	  if (apptInDays - timeInDays == 1) {
-				snprintf(date_time_for_appt, 20, "Demain");
-				text_layer_set_text(&calendar_date_layer, date_time_for_appt); 	
-				layer_set_hidden(&animated_layer[CALENDAR_LAYER], 0);
-				} else if (apptInDays == timeInDays) {
-				      snprintf(date_time_for_appt, 20, "Aujourd'hui");
-				// Change lines above for time format, current is days/months
-					  text_layer_set_text(&calendar_date_layer, date_time_for_appt); 	
-					  layer_set_hidden(&animated_layer[CALENDAR_LAYER], 0);
-			} else {
-				      snprintf(date_time_for_appt, 20, "Le %d/%d", apptInDays, apptInMonths);
-				// Change lines above for time format, current is days/months
-					  text_layer_set_text(&calendar_date_layer, date_time_for_appt); 	
-					  layer_set_hidden(&animated_layer[CALENDAR_LAYER], 0);
-				    } 
-  } else {
-		// First, we assign values
-	  
-	apptInMinutes = timestr2minutes(appointment_time + 6);
-	timeInMinutes = (t.tm_hour * 60) + t.tm_min;
-		static char textBuffer[] = "00";
-		strncpy(textBuffer, appointment_time + 3,2);
-	apptInDays = string2number(textBuffer);
-	timeInDays = t.tm_mday;
-		strncpy(textBuffer, appointment_time,2);
-	apptInMonths = string2number(textBuffer);
-	timeInMonths = (t.tm_mon + 1);
-	
-	
-	/* Manage appoitment notification */
-	
-	if(apptInMinutes >= 0) {
-		//if(apptInMinutes < timeInMinutes) {
-			//layer_set_hidden(&calendar_layer, 1); 	
-		//}
-		if ((apptInDays > timeInDays)||(apptInMonths > timeInMonths)) {
-			if ((apptInMinutes == 0) && (apptInDays - timeInDays == 1)) { 
-			snprintf(date_time_for_appt, 20, "A Minuit");
-				// Change lines above for time format, current is days/months
-			text_layer_set_text(&calendar_date_layer, date_time_for_appt);; 	
-			layer_set_hidden(&animated_layer[CALENDAR_LAYER], 0);  	
-			} else if ((apptInDays - timeInDays == 1) && (((apptInMinutes) % 60) == 0)) {
-				snprintf(date_time_for_appt, 20, "Demain, %dh", (int)((apptInMinutes)/ 60));
-				text_layer_set_text(&calendar_date_layer, date_time_for_appt); 	
-				layer_set_hidden(&animated_layer[CALENDAR_LAYER], 0);
-            } else if (apptInDays - timeInDays == 1) {
-				snprintf(date_time_for_appt, 20, "Demain, %dh %d", (int)((apptInMinutes)/ 60),(int)((apptInMinutes) % 60));
-				text_layer_set_text(&calendar_date_layer, date_time_for_appt); 	
-				layer_set_hidden(&animated_layer[CALENDAR_LAYER], 0);
-            } else {
-				      snprintf(date_time_for_appt, 20, "%d/%d %dh %d", apptInDays, apptInMonths, (int)((apptInMinutes)/ 60),
-							   (int)((apptInMinutes) % 60));
-				// Change lines above for time format, current is days/months
-					  text_layer_set_text(&calendar_date_layer, date_time_for_appt); 	
-					  layer_set_hidden(&animated_layer[CALENDAR_LAYER], 0);
-			}  	
-		}  else if (apptInMinutes == 0) { 
-			snprintf(date_time_for_appt, 20, "Aucun");
-			text_layer_set_text(&calendar_date_layer, date_time_for_appt);; 	
-			layer_set_hidden(&animated_layer[CALENDAR_LAYER], 0);  	
-        } else if(timeInMinutes - apptInMinutes == 1) {
-			snprintf(date_time_for_appt, 20, "Depuis %d minute", (int)(timeInMinutes - apptInMinutes));
-			text_layer_set_text(&calendar_date_layer, date_time_for_appt); 	
-			layer_set_hidden(&animated_layer[CALENDAR_LAYER], 0);  	
-		} else if((apptInMinutes < timeInMinutes) && (((timeInMinutes - apptInMinutes) % 60) == 0)) {
-			snprintf(date_time_for_appt, 20, "Depuis %dh", 
-					 (int)((timeInMinutes - apptInMinutes)/60));
-			text_layer_set_text(&calendar_date_layer, date_time_for_appt); 	
-			layer_set_hidden(&animated_layer[CALENDAR_LAYER], 0);
-			vibes_short_pulse();
-		} else if((apptInMinutes < timeInMinutes) && (((timeInMinutes - apptInMinutes) / 60) > 0) && (((timeInMinutes - apptInMinutes) % 60) > 0)) {
-			snprintf(date_time_for_appt, 20, "Depuis %dh %dmin", 
-					 (int)((timeInMinutes - apptInMinutes)/60),(int)((timeInMinutes - apptInMinutes)%60));
-			text_layer_set_text(&calendar_date_layer, date_time_for_appt); 	
-			layer_set_hidden(&animated_layer[CALENDAR_LAYER], 0);  	
-		} else if(apptInMinutes < timeInMinutes) {
-			snprintf(date_time_for_appt, 20, "Depuis %d minutes", (int)(timeInMinutes - apptInMinutes));
-			text_layer_set_text(&calendar_date_layer, date_time_for_appt); 	
-			layer_set_hidden(&animated_layer[CALENDAR_LAYER], 0);  	
-		} else if(apptInMinutes > timeInMinutes) {
-			if(((apptInMinutes - timeInMinutes) / 60) > 0) {
-				snprintf(date_time_for_appt, 20, "Dans %dh %dm", 
-						 (int)((apptInMinutes - timeInMinutes) / 60),
-						 (int)((apptInMinutes - timeInMinutes) % 60));
-			} else if ((apptInMinutes - timeInMinutes) <= 1 ) {  // Décompte en secondes
-				int timeInSeconds = t.tm_sec;
-				snprintf(date_time_for_appt, 20, "Dans %d secondes", (int)(60 - timeInSeconds));
-				Precision_Is_Seconds = true;
-							// On va pas faire chier pour le 's' quand il reste 1 seconde hein !
-			} else {
-				snprintf(date_time_for_appt, 20, "Dans %d minutes", (int)(apptInMinutes - timeInMinutes));
-			}
-			text_layer_set_text(&calendar_date_layer, date_time_for_appt); 	
-			layer_set_hidden(&animated_layer[CALENDAR_LAYER], 0);  	
-		}else if(apptInMinutes == timeInMinutes) {
-			text_layer_set_text(&calendar_date_layer, "Maintenant!"); 	
-			layer_set_hidden(&animated_layer[CALENDAR_LAYER], 0);  	
-			vibes_double_pulse();
-			Precision_Is_Seconds = false;
-		} 
-=======
-
 	// Init some variables
 	static char date_time_for_appt[20]; // = "Le XX XXXX à ##h##";
 	static char stringBuffer[]="XX";
@@ -298,7 +180,6 @@ static void apptDisplay(char *appt_string) {
 						appt_minute = string2number(stringBuffer);
 					} else {APP_LOG(APP_LOG_LEVEL_ERROR, "appt_minute cannot be determined...");}
 				APP_LOG(APP_LOG_LEVEL_DEBUG,"appt_minute is %i",appt_minute);
->>>>>>> Jailbreak-2.0
 		
 	 static int hour_now;
 	 static int min_now;
@@ -838,11 +719,7 @@ static void deinit(void) {
 	if (timerUpdateCalendar != NULL)
 		app_timer_cancel(timerUpdateCalendar);
 	timerUpdateCalendar = NULL;
-
-<<<<<<< HEAD
-// EXECUTE THE FOLLOWING ONLY ONCE PER MINUTE
-	if ((seconds == 0) || (!Watch_Face_Initialized) || (Precision_Is_Seconds)) {	
-=======
+	
 	if (timerUpdateWeather != NULL)	
 		app_timer_cancel(timerUpdateWeather);
 	timerUpdateWeather = NULL;
@@ -850,7 +727,6 @@ static void deinit(void) {
 	if (timerUpdateMusic != NULL)
 		app_timer_cancel(timerUpdateMusic);
 	timerUpdateMusic = NULL;
->>>>>>> Jailbreak-2.0
 	
 
 
