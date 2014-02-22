@@ -2,6 +2,10 @@ SmartFrenchIze Watch App
 =====================
 ![Smartwatch+ Banner](https://raw.github.com/Allezxandre/SmartStatus-AppStore/master/AppStore%20Assets/SmartFrenchIze-Header.png)
 
+### Téléchargement
+Pour télécharger la **dernière version** : [suivez ce lien](https://github.com/Allezxandre/Smart-FrenchIze-Jailbreak/releases)
+
+### Présentation
 
 **Attention**, cette Watchface ne fonctionnera qu'avec la version AppStore de Smartwatch+. 
 [Smartwatch+](https://itunes.apple.com/us/app/smartwatch+-for-pebble/id711357931?ls=1&mt=8) est disponible sur l'AppStore
