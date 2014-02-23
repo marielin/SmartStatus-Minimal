@@ -375,9 +375,6 @@ static void animate_layers(){
 	animation_schedule((Animation*)ani_in);
 }
 
-static void auto_switch(void *data){
-	if (active_layer == MUSIC_LAYER) {animate_layers();}
-}
 
 static void click_config_provider(void *context) {
   window_raw_click_subscribe(BUTTON_ID_SELECT, select_click_down_handler, select_click_up_handler, context);
@@ -406,12 +403,6 @@ static void window_appear(Window *window)
 static void window_disappear(Window *window)
 {
 	sendCommandInt(SM_SCREEN_EXIT_KEY, STATUS_SCREEN_APP);
-	
-/*
-	app_timer_cancel_event(g_app_context, timerUpdateCalendar);
-	app_timer_cancel_event(g_app_context, timerUpdateMusic);
-	app_timer_cancel_event(g_app_context, timerUpdateWeather);
-*/	
 }
 
 
@@ -783,6 +774,12 @@ static void updateMusic(void *data) {
 	sendCommand(SM_SONG_LENGTH_KEY);	
 }
 
+static void auto_switch(void *data){
+	if (active_layer == MUSIC_LAYER) {
+		updateCalendar(NULL);
+		animate_layers();
+	}
+}
 
 void rcv(DictionaryIterator *received, void *context) {
 	// Got a message callback
