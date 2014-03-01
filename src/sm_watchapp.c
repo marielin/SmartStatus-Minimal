@@ -14,6 +14,7 @@ static char last_text[] = "No Title";
 enum {CALENDAR_LAYER, MUSIC_LAYER, NUM_LAYERS};
 
 static void reset();
+static void auto_switch(void *data);
 
 static Window *window;
 
@@ -76,9 +77,8 @@ const char *before_after[] = {"Depuis", "Dans"};
 
 
 static uint32_t s_sequence_number = 0xFFFFFFFE;
-/** —————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————————
-—————————————————————————————————————————————————————Calendar Appointments———————————————————————————————————————————————————————————————————
-**/
+
+// Calendar Appointments
 
 /* Convert letter to digit */
 int letter2digit(char letter) {
@@ -116,8 +116,6 @@ static int string2number(char *string) {
 	return result;
 }
 
-// XX/XX 8:30 BLABLABLA
-// 0123456789
 static void apptDisplay(char *appt_string) {
 	
 	// Make sure there is no error in argument
@@ -282,7 +280,7 @@ static void apptDisplay(char *appt_string) {
 	layer_set_hidden(animated_layer[CALENDAR_LAYER], 0);
 }
 
-// End of calendar appointment utilities */
+// End of calendar appointment utilities
 
 
 AppMessageResult sm_message_out_get(DictionaryIterator **iter_out) {
@@ -334,18 +332,11 @@ static void select_click_down_handler(ClickRecognizerRef recognizer, void *conte
 }
 
 static void select_click_up_handler(ClickRecognizerRef recognizer, void *context) {
-	//revert to showing the temperature 
-	layer_set_hidden(text_layer_get_layer(text_weather_temp_layer), false);
-	layer_set_hidden(text_layer_get_layer(text_weather_cond_layer), true);
-}
-
-
-/*static void up_click_handler(ClickRecognizerRef recognizer, void *context) {
 	//update all data
 	reset();
-	
 	sendCommandInt(SM_SCREEN_ENTER_KEY, STATUS_SCREEN_APP);
-}*/  // Not Jailbreak
+}
+
 static void up_click_handler(ClickRecognizerRef recognizer, void *context) {
 	sendCommand(SM_OPEN_SIRI_KEY);
 }
@@ -363,11 +354,6 @@ static void animate_layers(){
 
 	ani_out = property_animation_create_layer_frame(animated_layer[active_layer], &GRect(0, 124, 143, 45), &GRect(-138, 124, 143, 45));
 	animation_schedule((Animation*)ani_out);
-
-	if ((hideMusicLayer != NULL) && (active_layer == MUSIC_LAYER)) {
-		app_timer_cancel(hideMusicLayer);
-		hideMusicLayer = NULL;
-	}
 
 	active_layer = (active_layer + 1) % (NUM_LAYERS);
 
@@ -441,7 +427,7 @@ void handle_second_tick(struct tm *tick_time, TimeUnits units_changed) {
 if (((units_changed & MINUTE_UNIT) == MINUTE_UNIT) || (!Watch_Face_Initialized) ){
 	// Need to be static because they're used by the system later.
 	static char time_text[] = "00:00";
-	char *time_format;
+	static char *time_format;
 
 	static int heure;
 	heure = tick_time->tm_hour;
@@ -502,6 +488,14 @@ void bluetoothChanged(bool connected) {
 	} else {
 		bitmap_layer_set_bitmap(weather_image, weather_status_imgs[NUM_WEATHER_IMAGES-1]);
 		vibes_double_pulse();
+		text_layer_set_text(music_artist_layer, "iPhone");
+		text_layer_set_text(music_song_layer, "Déconnecté");
+		strncpy(last_text,"12345678",8);
+		if (active_layer != MUSIC_LAYER) 
+				animate_layers();
+		if (hideMusicLayer != NULL) 
+			app_timer_cancel(hideMusicLayer);
+		hideMusicLayer = app_timer_register(5000 , auto_switch, NULL);
 	}
 	
 }
@@ -775,10 +769,8 @@ static void updateMusic(void *data) {
 }
 
 static void auto_switch(void *data){
-	if (active_layer == MUSIC_LAYER) {
-		updateCalendar(NULL);
-		animate_layers();
-	}
+	hideMusicLayer = NULL;
+	if (active_layer == MUSIC_LAYER) animate_layers();
 }
 
 void rcv(DictionaryIterator *received, void *context) {
@@ -821,9 +813,8 @@ void rcv(DictionaryIterator *received, void *context) {
  	if (t!=NULL) {
  		memcpy(calendar_date_str, t->value->cstring, strlen(t->value->cstring));
           calendar_date_str[strlen(t->value->cstring)] = '\0';
- 		//text_layer_set_text(&calendar_date_layer, calendar_date_str);
-		APP_LOG(APP_LOG_LEVEL_DEBUG, "Received DATA for Calendar");
-		APP_LOG(APP_LOG_LEVEL_DEBUG, "Launching Appointment Module [apptDisplay]");
+ 		text_layer_set_text(calendar_date_layer, calendar_date_str);
+		APP_LOG(APP_LOG_LEVEL_DEBUG, "Received DATA for Calendar, launching Appointment Module [apptDisplay]");
 		apptDisplay(calendar_date_str);
   	}
 	
@@ -858,8 +849,9 @@ void rcv(DictionaryIterator *received, void *context) {
 		text_layer_set_text(music_song_layer, music_title_str1);
 		if ((strncmp(last_text,music_title_str1,8) != 0) && (strncmp(music_title_str1,"No Title",8) != 0)) {
 			strncpy(last_text,music_title_str1,8);
-			animate_layers();
-			if (hideMusicLayer != NULL)
+			if (active_layer != MUSIC_LAYER) 
+				animate_layers();
+			if (hideMusicLayer != NULL) 
 				app_timer_cancel(hideMusicLayer);
 			hideMusicLayer = app_timer_register(5000 , auto_switch, NULL);
 		}
