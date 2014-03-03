@@ -248,9 +248,7 @@ static void apptDisplay(char *appt_string) {
 					int minutes_since = 0;
 					minutes_since = ((min_now) - appt_minute);
 					hour_since = ((hour_now) - appt_hour);
-					if (minutes_since == 0) {
-						hour_since += 1;
-					} else if (minutes_since < 0) {
+					if (minutes_since < 0) {
 						hour_since -= 1;
 						minutes_since += 60;
 					}
@@ -634,7 +632,8 @@ static void init(void) {
 
 
 	//init calendar layer
-	animated_layer[CALENDAR_LAYER] = layer_create(GRect(0, 124, 144, 45));
+	animated_layer[CALENDAR_LAYER] = layer_create_with_data(GRect(0, 124, 144, 45),sizeof("Demain, nouvel evenement")); 
+		//										 _with_data to make sure it can be allocated dynamically
 	layer_add_child(window_layer, animated_layer[CALENDAR_LAYER]);
 	
 	calendar_date_layer = text_layer_create(GRect(6, 0, 132, 21));
@@ -745,7 +744,6 @@ static void deinit(void) {
 	gbitmap_destroy(bg_image);
 	gbitmap_destroy(battery_image);
 	gbitmap_destroy(battery_pbl_image);
-
 
 	tick_timer_service_unsubscribe();
 	bluetooth_connection_service_unsubscribe();
