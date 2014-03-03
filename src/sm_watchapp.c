@@ -37,7 +37,8 @@ static char string_buffer[STRING_LENGTH];
 static char weather_cond_str[STRING_LENGTH], weather_temp_str[5];
 static int weather_img, batteryPercent, batteryPblPercent;
 
-static char calendar_date_str[STRING_LENGTH], calendar_text_str[STRING_LENGTH];
+static char *calendar_date_str;
+static char calendar_text_str[STRING_LENGTH];
 static char music_artist_str1[STRING_LENGTH], music_title_str1[STRING_LENGTH];
 
 
@@ -49,7 +50,9 @@ static AppTimer *timerUpdateWeather = NULL;
 static AppTimer *timerUpdateMusic = NULL;
 static AppTimer *hideMusicLayer = NULL;
 
-
+/* Preload the fonts */
+GFont font_date;
+GFont font_time;
 
 const int WEATHER_IMG_IDS[] = {	
   RESOURCE_ID_IMAGE_SUN,
@@ -65,14 +68,14 @@ const int WEATHER_IMG_IDS[] = {
 
 // Lists of days and months
           // Translation for DAYS goes here, starting on SUNDAY :
-const char *day_of_week[] = {"Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"};
+static const char *day_of_week[] = {"Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"};
 
           // Translation for MONTHS goes here :
-const char *month_of_year[] = { "Janv", "Fevr", "Mars", "Avr", "Mai", "Juin", "Juil", "Aout", "Sept", "Oct", "Nov", "Dec"};
-const int days_per_month [12] = {31,28,31,30,31,30,31,31,30,31,30,31};
+static const char *month_of_year[] = { "Janv", "Fevr", "Mars", "Avr", "Mai", "Juin", "Juil", "Aout", "Sept", "Oct", "Nov", "Dec"};
+static const int days_per_month [12] = {31,28,31,30,31,30,31,31,30,31,30,31};
 
-const char *days_from_today[] = { "Demain", "Après-demain", "Dans 3 jours", "Dans 4 jours" };
-const char *before_after[] = {"Depuis", "Dans"};
+static const char *days_from_today[] = { "Demain", "Après-demain", "Dans 3 jours", "Dans 4 jours" };
+static const char *before_after[] = {"Depuis", "Dans"};
 
 
 
@@ -421,7 +424,7 @@ void reset() {
 
 
 void handle_second_tick(struct tm *tick_time, TimeUnits units_changed) {
-	if (((units_changed & MINUTE_UNIT) == MINUTE_UNIT) || (!Watch_Face_Initialized)) {apptDisplay(calendar_date_str);}
+	//DEBUG_HERE if (((units_changed & MINUTE_UNIT) == MINUTE_UNIT) || (!Watch_Face_Initialized)) {apptDisplay(calendar_date_str);}
 if (((units_changed & MINUTE_UNIT) == MINUTE_UNIT) || (!Watch_Face_Initialized) ){
 	// Need to be static because they're used by the system later.
 	static char time_text[] = "00:00";
@@ -519,6 +522,9 @@ static void init(void) {
   });
   const bool animated = true;
   window_stack_push(window, animated);
+  // Choose fonts
+font_date = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_ROBOTO_CONDENSED_21));
+font_time = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_ROBOTO_BOLD_SUBSET_49));
 
 	//init weather images
 	for (int i=0; i<NUM_WEATHER_IMAGES; i++) {
@@ -618,7 +624,7 @@ static void init(void) {
 	text_layer_set_text_color(text_date_layer, GColorWhite);
 	text_layer_set_background_color(text_date_layer, GColorClear);
 	layer_set_frame(text_layer_get_layer(text_date_layer), GRect(0, 45, 144, 30));
-	text_layer_set_font(text_date_layer, fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_ROBOTO_CONDENSED_21)));
+	text_layer_set_font(text_date_layer, font_date);
 	layer_add_child(window_layer, text_layer_get_layer(text_date_layer));
 
 
@@ -627,7 +633,7 @@ static void init(void) {
 	text_layer_set_text_color(text_time_layer, GColorWhite);
 	text_layer_set_background_color(text_time_layer, GColorClear);
 	layer_set_frame(text_layer_get_layer(text_time_layer), GRect(0, -5, 144, 50));
-	text_layer_set_font(text_time_layer, fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_ROBOTO_BOLD_SUBSET_49)));
+	text_layer_set_font(text_time_layer, font_time);
 	layer_add_child(window_layer, text_layer_get_layer(text_time_layer));
 
 
@@ -730,6 +736,12 @@ static void deinit(void) {
 	text_layer_destroy(music_artist_layer);
 	text_layer_destroy(music_song_layer);
 	
+	if (calendar_date_str != NULL) {
+ 		free(calendar_date_str);
+ 		APP_LOG(APP_LOG_LEVEL_DEBUG,"calendar_date_str memory is now free");
+ 	}
+ 	fonts_unload_custom_font(font_date);
+	fonts_unload_custom_font(font_time);
 
 	for (int i=0; i<NUM_LAYERS; i++) {
 		if (animated_layer[i]!=NULL)
@@ -807,10 +819,21 @@ void rcv(DictionaryIterator *received, void *context) {
 		text_layer_set_text(text_battery_layer, string_buffer ); 	
 	}
 
-	t=dict_find(received, SM_STATUS_CAL_TIME_KEY);   // I changed this if that's what you're looking for
+	t=dict_find(received, SM_STATUS_CAL_TIME_KEY);   // I changed this if that's what you're looking for <-------------------------
  	if (t!=NULL) {
+ 		if (calendar_date_str != NULL) {
+ 			free(calendar_date_str);
+ 		}
+ 		static int num_chars;
+ 		num_chars = strlen(t->value->cstring);
+ 		calendar_date_str = (char *)malloc(sizeof(char) * num_chars);
+ 		if (calendar_date_str == NULL) {
+ 			APP_LOG(APP_LOG_LEVEL_ERROR,"Malloc wasn't able to allocate memory (num_chars = %i)",num_chars);
+ 		} else {
+ 			APP_LOG(APP_LOG_LEVEL_INFO,"Malloc succesfully allocated memory (num_chars * sizeof(char) = %i * %i)",num_chars, (int)(sizeof(char)));
+ 		}
  		memcpy(calendar_date_str, t->value->cstring, strlen(t->value->cstring));
-          calendar_date_str[strlen(t->value->cstring)] = '\0';
+        calendar_date_str[strlen(t->value->cstring)] = '\0';
  		text_layer_set_text(calendar_date_layer, calendar_date_str);
 		APP_LOG(APP_LOG_LEVEL_DEBUG, "Received DATA for Calendar, launching Appointment Module [apptDisplay]");
 		apptDisplay(calendar_date_str);
