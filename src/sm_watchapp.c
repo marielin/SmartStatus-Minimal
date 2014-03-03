@@ -10,11 +10,13 @@
 	// Mes variables
 static bool Watch_Face_Initialized = false;
 static char last_text[] = "No Title";
-	
+static bool phone_is_connected = false;
 enum {CALENDAR_LAYER, MUSIC_LAYER, NUM_LAYERS};
 
 static void reset();
+static void animate_layers();
 static void auto_switch(void *data);
+static void display_Notification(char *text1, char *text2, int time);
 
 static Window *window;
 
@@ -49,6 +51,7 @@ static AppTimer *timerUpdateCalendar = NULL;
 static AppTimer *timerUpdateWeather = NULL;
 static AppTimer *timerUpdateMusic = NULL;
 static AppTimer *hideMusicLayer = NULL;
+static AppTimer *general_Timer = NULL;
 
 /* Preload the fonts */
 GFont font_date;
@@ -276,7 +279,6 @@ static void apptDisplay(char *appt_string) {
 	strcpy (date_time_for_appt,date_of_appt);
   	strcat (date_time_for_appt,time_string);
 
-
 	text_layer_set_text(calendar_date_layer, date_time_for_appt); 	
 	layer_set_hidden(animated_layer[CALENDAR_LAYER], 0);
 }
@@ -323,7 +325,16 @@ void sendCommandInt(int key, int param) {
 }
 
 
-
+static void display_Notification(char *text1, char *text2, int time) {
+		if (hideMusicLayer != NULL) 
+			app_timer_cancel(hideMusicLayer);
+		hideMusicLayer = app_timer_register(time , auto_switch, NULL);
+		if (active_layer != MUSIC_LAYER) 
+				animate_layers();
+		text_layer_set_text(music_artist_layer, text1);
+		text_layer_set_text(music_song_layer, text2);
+		strncpy(last_text,"12345678",8);
+	}
 
 
 static void select_click_down_handler(ClickRecognizerRef recognizer, void *context) {
@@ -334,8 +345,13 @@ static void select_click_down_handler(ClickRecognizerRef recognizer, void *conte
 
 static void select_click_up_handler(ClickRecognizerRef recognizer, void *context) {
 	//update all data
-	reset();
-	sendCommandInt(SM_SCREEN_ENTER_KEY, STATUS_SCREEN_APP);
+	if (phone_is_connected) {
+		reset();
+		sendCommandInt(SM_SCREEN_ENTER_KEY, STATUS_SCREEN_APP);
+	} else {
+		layer_set_hidden(text_layer_get_layer(text_weather_temp_layer), false);
+		layer_set_hidden(text_layer_get_layer(text_weather_cond_layer), true);
+	}
 }
 
 static void up_click_handler(ClickRecognizerRef recognizer, void *context) {
@@ -343,7 +359,47 @@ static void up_click_handler(ClickRecognizerRef recognizer, void *context) {
 }
 
 static void down_click_handler(ClickRecognizerRef recognizer, void *context) {
-	sendCommand(SM_NEXT_TRACK_KEY);
+	if (phone_is_connected) {sendCommand(SM_NEXT_TRACK_KEY);} else {light_enable(false);}
+	if (hideMusicLayer != NULL) 
+			app_timer_cancel(hideMusicLayer);
+	auto_switch(NULL);
+}
+
+static void notif_find_my_iphone(ClickRecognizerRef recognizer, void *context) {
+	vibes_short_pulse();
+	if (phone_is_connected) {
+		display_Notification("Faire sonner", "l'iPhone ?", 5000);
+	} else {
+		display_Notification("iPhone", "Déconnecté", 2000);
+	}
+}
+static void find_my_iphone(ClickRecognizerRef recognizer, void *context) {
+	if (phone_is_connected) {
+		vibes_long_pulse();
+	}
+	sendCommand(SM_FIND_MY_PHONE_KEY);
+}
+
+static void turn_off_the_light(void *data) {
+		light_enable(false);
+		if (general_Timer != NULL) {
+			app_timer_cancel(general_Timer);
+			general_Timer = NULL;
+		}
+}
+
+static void held_down_button_down(ClickRecognizerRef recognizer, void *context) {
+	if (phone_is_connected) { // If phone is connected, we play music
+		strncpy(last_text,"12345678",8); // We kind of force a new displaying of song
+		sendCommand(SM_PLAYPAUSE_KEY);
+	} else {
+		light_enable(true);
+		if (general_Timer != NULL) {
+			app_timer_cancel(general_Timer);
+			general_Timer = NULL;
+		}
+		general_Timer = app_timer_register(120000 , turn_off_the_light, NULL);
+	}
 }
 
 static void animate_layers(){
@@ -367,6 +423,8 @@ static void click_config_provider(void *context) {
   window_raw_click_subscribe(BUTTON_ID_SELECT, select_click_down_handler, select_click_up_handler, context);
   window_single_click_subscribe(BUTTON_ID_UP, up_click_handler);
   window_single_click_subscribe(BUTTON_ID_DOWN, down_click_handler);
+  window_long_click_subscribe(BUTTON_ID_UP, 3000, notif_find_my_iphone, find_my_iphone);
+  window_long_click_subscribe(BUTTON_ID_DOWN, 500, held_down_button_down, NULL);
 }
 
 static void window_load(Window *window) {
@@ -418,13 +476,13 @@ void reset() {
 	
 	layer_set_hidden(text_layer_get_layer(text_weather_temp_layer), true);
 	layer_set_hidden(text_layer_get_layer(text_weather_cond_layer), false);
-	text_layer_set_text(text_weather_cond_layer, "Mise a jour..."); 	
+	text_layer_set_text(text_weather_cond_layer, "Mise à jour..."); 	
 	
 }
 
 
 void handle_second_tick(struct tm *tick_time, TimeUnits units_changed) {
-	//DEBUG_HERE if (((units_changed & MINUTE_UNIT) == MINUTE_UNIT) || (!Watch_Face_Initialized)) {apptDisplay(calendar_date_str);}
+	if ((((units_changed & MINUTE_UNIT) == MINUTE_UNIT) || (!Watch_Face_Initialized)) && (calendar_date_str != NULL)) {apptDisplay(calendar_date_str);}
 if (((units_changed & MINUTE_UNIT) == MINUTE_UNIT) || (!Watch_Face_Initialized) ){
 	// Need to be static because they're used by the system later.
 	static char time_text[] = "00:00";
@@ -486,17 +544,16 @@ void bluetoothChanged(bool connected) {
 
 	if (connected) {
 		app_timer_register(5000, reconnect, NULL);
+		if (!phone_is_connected) {vibes_short_pulse();} 
+		/* Pebble has two channels for connection : Bluetooth-LE and Bluetooth ADP, it's a workaround 
+		   to prevent the watch from vibrating twice*/
+		display_Notification("iPhone", "Connecté", 5000);
+		phone_is_connected = true;
 	} else {
 		bitmap_layer_set_bitmap(weather_image, weather_status_imgs[NUM_WEATHER_IMAGES-1]);
-		vibes_double_pulse();
-		text_layer_set_text(music_artist_layer, "iPhone");
-		text_layer_set_text(music_song_layer, "Déconnecté");
-		strncpy(last_text,"12345678",8);
-		if (active_layer != MUSIC_LAYER) 
-				animate_layers();
-		if (hideMusicLayer != NULL) 
-			app_timer_cancel(hideMusicLayer);
-		hideMusicLayer = app_timer_register(5000 , auto_switch, NULL);
+		if (phone_is_connected) {vibes_short_pulse();}
+		display_Notification("iPhone", "Déconnecté", 5000);
+		phone_is_connected = false;
 	}
 	
 }
@@ -594,7 +651,7 @@ font_time = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_ROBOTO_B
 	layer_add_child(weather_layer, text_layer_get_layer(text_weather_cond_layer));
 
 	layer_set_hidden(text_layer_get_layer(text_weather_cond_layer), false);
-	text_layer_set_text(text_weather_cond_layer, "Mise a jour..."); 	
+	text_layer_set_text(text_weather_cond_layer, "Mise à jour..."); 	
 	
 	if (bluetooth_connection_service_peek()) {
 		weather_img = 0;
@@ -719,6 +776,10 @@ static void deinit(void) {
 		app_timer_cancel(hideMusicLayer);
 	hideMusicLayer = NULL;
 
+	if (general_Timer != NULL)
+		app_timer_cancel(general_Timer);
+	general_Timer = NULL;
+
 	bitmap_layer_destroy(background_image);
 	layer_destroy(weather_layer);
 	bitmap_layer_destroy(battery_image_layer);
@@ -831,6 +892,7 @@ void rcv(DictionaryIterator *received, void *context) {
  			APP_LOG(APP_LOG_LEVEL_ERROR,"Malloc wasn't able to allocate memory (num_chars = %i)",num_chars);
  		} else {
  			APP_LOG(APP_LOG_LEVEL_INFO,"Malloc succesfully allocated memory (num_chars * sizeof(char) = %i * %i)",num_chars, (int)(sizeof(char)));
+ 			phone_is_connected = true;
  		}
  		memcpy(calendar_date_str, t->value->cstring, strlen(t->value->cstring));
         calendar_date_str[strlen(t->value->cstring)] = '\0';
@@ -857,7 +919,6 @@ void rcv(DictionaryIterator *received, void *context) {
 	t=dict_find(received, SM_STATUS_MUS_ARTIST_KEY); 
 	if (t!=NULL) {
 		memcpy(music_artist_str1, t->value->cstring, strlen(t->value->cstring));
-
         music_artist_str1[strlen(t->value->cstring)] = '\0';
 		text_layer_set_text(music_artist_layer, music_artist_str1); 	
 	}
