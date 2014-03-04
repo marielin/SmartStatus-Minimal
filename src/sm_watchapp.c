@@ -11,6 +11,7 @@
 static bool Watch_Face_Initialized = false;
 static char last_text[] = "No Title";
 static bool phone_is_connected = false;
+static int last_notif_minute = -1;
 enum {CALENDAR_LAYER, MUSIC_LAYER, NUM_LAYERS};
 
 static void reset();
@@ -135,6 +136,10 @@ static void apptDisplay(char *appt_string) {
 			layer_set_hidden(animated_layer[CALENDAR_LAYER], 0);
 		return;
 	}
+
+	// The main buffers
+	static char date_of_appt[30];
+	static char time_string[20];
 	
 	// Init some variables
 	static char date_time_for_appt[20]; // = "Le XX XXXX à ##h##";
@@ -191,7 +196,7 @@ static void apptDisplay(char *appt_string) {
 	 mday_now = t->tm_mday;
 	 mon_now = t->tm_mon + 1;
 		// Check the DAY and Month of Appointment and write it in date_of_appt
-	static char date_of_appt[30];
+	
 	int interm = (appt_month - 1);
 	static int days_difference = 0;
 	if (mon_now != appt_month) {
@@ -216,9 +221,11 @@ static void apptDisplay(char *appt_string) {
 				} else if (days_difference > 4) {
 					snprintf(date_of_appt, 30, "Le %i %s à %ih%02i",appt_day, month_of_year[interm], appt_hour,appt_minute);
 					event_is_today = false; // Just so we don't write the time again
+					time_string[0] = '\0';
 				} else if (days_difference != 0) {
 					snprintf(date_of_appt, 30, "%s, à %ih%02i", days_from_today[(days_difference - 1)], appt_hour,appt_minute);
 					event_is_today = false; // Just so we don't write the time again
+					time_string[0] = '\0';
 				} else if (days_difference == 0) {
 					event_is_today = true;
 				} else {
@@ -226,10 +233,13 @@ static void apptDisplay(char *appt_string) {
 					return;
 				}
 		// Check the Hour and write it in time_string
-	 static char time_string[20];
 	 void display_hour (int hour_since, int minutes_since, int quand) {
 	 	if ((minutes_since == 0) && hour_since == 0) {
 						snprintf(time_string,20, "Maintenant !");
+						if (last_notif_minute != min_now) {
+							vibes_short_pulse();
+							last_notif_minute = min_now;
+						}
 					} else if (minutes_since == 0) {
 						if (hour_since == 1){
 							snprintf(time_string,20, "%s 1 heure",before_after[quand]);
@@ -274,6 +284,10 @@ static void apptDisplay(char *appt_string) {
 					}
 					
 					display_hour(hour_difference,minutes_difference,1);
+					if ((last_notif_minute != min_now) && (minutes_difference == 15) && (hour_difference == 0)) { // Vibrate 15 minutes before the event
+							vibes_short_pulse();
+							last_notif_minute = min_now;
+						}
 				}
 
 	strcpy (date_time_for_appt,date_of_appt);
