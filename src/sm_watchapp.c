@@ -227,6 +227,7 @@ static void apptDisplay(char *appt_string) {
 					event_is_today = false; // Just so we don't write the time again
 					time_string[0] = '\0';
 				} else if (days_difference == 0) {
+					date_of_appt[0] = '\0';
 					event_is_today = true;
 				} else {
 					APP_LOG(APP_LOG_LEVEL_ERROR, "days_difference tests failed :(");
