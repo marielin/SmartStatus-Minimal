@@ -238,18 +238,18 @@ static void apptDisplay(char *appt_string) {
 						}
 					} else if (minutes_since == 0) {
 						if (hour_since == 1){
-							snprintf(time_string,20, "%s 1 heure",before_after[quand]);
+							snprintf(time_string,20, STRING_EVENT_HOUR,before_after[quand]);
 						} else {
-							snprintf(time_string,20, "%s %i heures",before_after[quand], hour_since);
+							snprintf(time_string,20, STRING_EVENT_HOURS,before_after[quand], hour_since); // For plural
 						}
 					} else if (hour_since == 0) {
 						if (minutes_since == 1){
-							snprintf(time_string,20, "%s 1 minute",before_after[quand]);
+							snprintf(time_string,20, STRING_EVENT_MINUTE,before_after[quand]);
 						} else {
-							snprintf(time_string,20, "%s %i minutes",before_after[quand],minutes_since);
+							snprintf(time_string,20, STRING_EVENT_MINUTES,before_after[quand],minutes_since); // For plural
 						}
 					} else {
-						snprintf(time_string,20, "%s %ih %i", before_after[quand], hour_since, minutes_since);
+						snprintf(time_string,20, STRING_EVENT_MIXED, before_after[quand], hour_since, minutes_since);
 					}
 	  }
 
