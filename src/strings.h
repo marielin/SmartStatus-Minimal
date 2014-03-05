@@ -2,7 +2,7 @@
 	This file may be used for translations. Don't hesitate contacting me if you need help.
 	© Alexandre Jouandin — SmartFrenchIze
 
-	Please keep the layout as it is now, and change only the strings, not the names
+	Please keep the layout as it is now, and only change the strings, not the names
 */
 
 // Lists of translations
