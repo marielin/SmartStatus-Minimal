@@ -23,7 +23,6 @@ This is a custom, personnal version of Robhh's SmartStatus WatchApp with some go
 * Next Event on iPhone Calendar
 
 #### Improvements over the original version :
-Vibrations lors d'une (dis)connexion
 Vibrate on (dis)connect
 Improved display system
 Smart Buttons :
