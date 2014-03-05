@@ -1,6 +1,12 @@
 #include <pebble.h>
 #include "globals.h"
+#include "strings.h"
 
+/*
+	This WatchFace is a (deeply) modified version of SmartStatus
+	All credits go to Robhh
+	© Robhh : https://github.com/robhh/SmartStatus-AppStore
+*/
 
 #define STRING_LENGTH 255
 #define NUM_WEATHER_IMAGES	9
@@ -69,17 +75,6 @@ const int WEATHER_IMG_IDS[] = {
   RESOURCE_ID_IMAGE_THUNDER,
   RESOURCE_ID_IMAGE_DISCONNECT
 };
-
-// Lists of days and months
-          // Translation for DAYS goes here, starting on SUNDAY :
-static const char *day_of_week[] = {"Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"};
-
-          // Translation for MONTHS goes here :
-static const char *month_of_year[] = { "Janv", "Fevr", "Mars", "Avr", "Mai", "Juin", "Juil", "Aout", "Sept", "Oct", "Nov", "Dec"};
-static const int days_per_month [12] = {31,28,31,30,31,30,31,31,30,31,30,31};
-
-static const char *days_from_today[] = { "Demain", "Après-demain", "Dans 3 jours", "Dans 4 jours" };
-static const char *before_after[] = {"Depuis", "Dans"};
 
 
 
@@ -215,15 +210,15 @@ static void apptDisplay(char *appt_string) {
 		}
 	}
 				if (event_is_past) {
-					snprintf(date_of_appt,30, "Depuis le %i %s",appt_day, month_of_year[interm]);
+					snprintf(date_of_appt,30, STRING_EVENT_IS_PAST,appt_day, month_of_year[interm]);
 					event_is_all_day = true;
 					APP_LOG(APP_LOG_LEVEL_DEBUG,"Event has started in the past, not today");
 				} else if (days_difference > 4) {
-					snprintf(date_of_appt, 30, "Le %i %s à %ih%02i",appt_day, month_of_year[interm], appt_hour,appt_minute);
+					snprintf(date_of_appt, 30, STRING_EVENT_FUTURE_GLOBAL,appt_day, month_of_year[interm], appt_hour,appt_minute);
 					event_is_today = false; // Just so we don't write the time again
 					time_string[0] = '\0';
 				} else if (days_difference != 0) {
-					snprintf(date_of_appt, 30, "%s, à %ih%02i", days_from_today[(days_difference - 1)], appt_hour,appt_minute);
+					snprintf(date_of_appt, 30, STRING_EVENT_FUTURE_SOON, days_from_today[(days_difference - 1)], appt_hour,appt_minute);
 					event_is_today = false; // Just so we don't write the time again
 					time_string[0] = '\0';
 				} else if (days_difference == 0) {
@@ -236,7 +231,7 @@ static void apptDisplay(char *appt_string) {
 		// Check the Hour and write it in time_string
 	 void display_hour (int hour_since, int minutes_since, int quand) {
 	 	if ((minutes_since == 0) && hour_since == 0) {
-						snprintf(time_string,20, "Maintenant !");
+						snprintf(time_string,20, STRING_NOW);
 						if (last_notif_minute != min_now) {
 							vibes_short_pulse();
 							last_notif_minute = min_now;
@@ -383,9 +378,9 @@ static void down_click_handler(ClickRecognizerRef recognizer, void *context) {
 static void notif_find_my_iphone(ClickRecognizerRef recognizer, void *context) {
 	vibes_short_pulse();
 	if (phone_is_connected) {
-		display_Notification("Faire sonner", "l'iPhone ?", 5000);
+		display_Notification(STRING_FIND_IPHONE_CONF_1, STRING_FIND_IPHONE_CONF_2, 5000);
 	} else {
-		display_Notification("iPhone", "Déconnecté", 2000);
+		display_Notification("iPhone", STRING_DISCONNECTED, 2000);
 	}
 }
 static void find_my_iphone(ClickRecognizerRef recognizer, void *context) {
@@ -491,7 +486,7 @@ void reset() {
 	
 	layer_set_hidden(text_layer_get_layer(text_weather_temp_layer), true);
 	layer_set_hidden(text_layer_get_layer(text_weather_cond_layer), false);
-	text_layer_set_text(text_weather_cond_layer, "Mise à jour..."); 	
+	text_layer_set_text(text_weather_cond_layer, STRING_UPDATING); 	
 	
 }
 
@@ -517,6 +512,8 @@ if (((units_changed & MINUTE_UNIT) == MINUTE_UNIT) || (!Watch_Face_Initialized) 
 	static int month_int;
 	 month_int = tick_time->tm_mon;
 	 	// Print the result
+
+
    snprintf(date_text, sizeof(date_text), "%s %i %s", day_of_week[day_int], tick_time->tm_mday, month_of_year[month_int]);
    text_layer_set_text(text_date_layer, date_text);
 	  APP_LOG(APP_LOG_LEVEL_INFO, "Displayed date : [%s %i %s]", day_of_week[day_int], tick_time->tm_mday, month_of_year[month_int]);
@@ -562,12 +559,12 @@ void bluetoothChanged(bool connected) {
 		if (!phone_is_connected) {vibes_short_pulse();} 
 		/* Pebble has two channels for connection : Bluetooth-LE and Bluetooth ADP, it's a workaround 
 		   to prevent the watch from vibrating twice*/
-		display_Notification("iPhone", "Connecté", 5000);
+		display_Notification("iPhone", STRING_CONNECTED, 5000);
 		phone_is_connected = true;
 	} else {
 		bitmap_layer_set_bitmap(weather_image, weather_status_imgs[NUM_WEATHER_IMAGES-1]);
 		if (phone_is_connected) {vibes_short_pulse();}
-		display_Notification("iPhone", "Déconnecté", 5000);
+		display_Notification("iPhone", STRING_DISCONNECTED, 5000);
 		phone_is_connected = false;
 	}
 	
@@ -666,7 +663,7 @@ font_time = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_ROBOTO_B
 	layer_add_child(weather_layer, text_layer_get_layer(text_weather_cond_layer));
 
 	layer_set_hidden(text_layer_get_layer(text_weather_cond_layer), false);
-	text_layer_set_text(text_weather_cond_layer, "Mise à jour..."); 	
+	text_layer_set_text(text_weather_cond_layer, STRING_UPDATING); 	
 	
 	if (bluetooth_connection_service_peek()) {
 		weather_img = 0;
@@ -710,7 +707,7 @@ font_time = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_ROBOTO_B
 
 
 	//init calendar layer
-	animated_layer[CALENDAR_LAYER] = layer_create_with_data(GRect(0, 124, 144, 45),sizeof("Demain, nouvel evenement")); 
+	animated_layer[CALENDAR_LAYER] = layer_create(GRect(0, 124, 144, 45)); 
 		//										 _with_data to make sure it can be allocated dynamically
 	layer_add_child(window_layer, animated_layer[CALENDAR_LAYER]);
 	
@@ -720,7 +717,7 @@ font_time = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_ROBOTO_B
 	text_layer_set_background_color(calendar_date_layer, GColorClear);
 	text_layer_set_font(calendar_date_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18));
 	layer_add_child(animated_layer[CALENDAR_LAYER], text_layer_get_layer(calendar_date_layer));
-	text_layer_set_text(calendar_date_layer, "Aucun"); 	
+	text_layer_set_text(calendar_date_layer, STRING_DEFAULT_CALENDAR_1); 	
 
 
 	calendar_text_layer = text_layer_create(GRect(6, 15, 132, 28));
@@ -729,7 +726,7 @@ font_time = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_ROBOTO_B
 	text_layer_set_background_color(calendar_text_layer, GColorClear);
 	text_layer_set_font(calendar_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
 	layer_add_child(animated_layer[CALENDAR_LAYER], text_layer_get_layer(calendar_text_layer));
-	text_layer_set_text(calendar_text_layer, "Rendez-vous");
+	text_layer_set_text(calendar_text_layer, STRING_DEFAULT_CALENDAR_2);
 	
 	
 	
@@ -743,7 +740,7 @@ font_time = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_ROBOTO_B
 	text_layer_set_background_color(music_artist_layer, GColorClear);
 	text_layer_set_font(music_artist_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18));
 	layer_add_child(animated_layer[MUSIC_LAYER], text_layer_get_layer(music_artist_layer));
-	text_layer_set_text(music_artist_layer, "No Artist"); 	
+	text_layer_set_text(music_artist_layer, STRING_DEFAULT_MUSIC_1); 	
 
 
 	music_song_layer = text_layer_create(GRect(6, 15, 132, 28));
@@ -752,7 +749,7 @@ font_time = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_ROBOTO_B
 	text_layer_set_background_color(music_song_layer, GColorClear);
 	text_layer_set_font(music_song_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
 	layer_add_child(animated_layer[MUSIC_LAYER], text_layer_get_layer(music_song_layer));
-	text_layer_set_text(music_song_layer, "No Title");
+	text_layer_set_text(music_song_layer, STRING_DEFAULT_MUSIC_2);
 
 
 	active_layer = CALENDAR_LAYER;
@@ -768,7 +765,7 @@ font_time = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_ROBOTO_B
 }
 
 static void deinit(void) {
-	
+	APP_LOG(APP_LOG_LEVEL_INFO,"Smart FrenchIze is about to quit...");
 	
 	property_animation_destroy((PropertyAnimation*)ani_in);
 	property_animation_destroy((PropertyAnimation*)ani_out);
@@ -814,7 +811,7 @@ static void deinit(void) {
 	
 	if (calendar_date_str != NULL) {
  		free(calendar_date_str);
- 		APP_LOG(APP_LOG_LEVEL_DEBUG,"calendar_date_str memory is now free");
+ 		APP_LOG(APP_LOG_LEVEL_DEBUG,"calendar_date_str memory has been freed");
  	}
  	fonts_unload_custom_font(font_date);
 	fonts_unload_custom_font(font_time);
@@ -839,6 +836,7 @@ static void deinit(void) {
 
   
   window_destroy(window);
+  APP_LOG(APP_LOG_LEVEL_INFO,"Goodbye!");
 }
 
 
