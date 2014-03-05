@@ -281,7 +281,8 @@ static void apptDisplay(char *appt_string) {
 					}
 					
 					display_hour(hour_difference,minutes_difference,1);
-					if ((last_notif_minute != min_now) && (minutes_difference == 15) && (hour_difference == 0)) { // Vibrate 15 minutes before the event
+					if ((last_notif_minute != min_now) && (minutes_difference == 15) && (hour_difference == 0)) { 
+							// Vibrate 15 minutes before the event
 							vibes_short_pulse();
 							last_notif_minute = min_now;
 						}
@@ -493,7 +494,8 @@ void reset() {
 
 
 void handle_second_tick(struct tm *tick_time, TimeUnits units_changed) {
-	if ((((units_changed & MINUTE_UNIT) == MINUTE_UNIT) || (!Watch_Face_Initialized)) && (calendar_date_str != NULL)) {apptDisplay(calendar_date_str);}
+	if ((((units_changed & MINUTE_UNIT) == MINUTE_UNIT) || (!Watch_Face_Initialized)) && (calendar_date_str != NULL)) 
+		{apptDisplay(calendar_date_str);}
 if (((units_changed & MINUTE_UNIT) == MINUTE_UNIT) || (!Watch_Face_Initialized) ){
 	// Need to be static because they're used by the system later.
 	static char time_text[] = "00:00";
@@ -905,7 +907,8 @@ void rcv(DictionaryIterator *received, void *context) {
  		if (calendar_date_str == NULL) {
  			APP_LOG(APP_LOG_LEVEL_ERROR,"Malloc wasn't able to allocate memory (num_chars = %i)",num_chars);
  		} else {
- 			APP_LOG(APP_LOG_LEVEL_INFO,"Malloc succesfully allocated memory (num_chars * sizeof(char) = %i * %i)",num_chars, (int)(sizeof(char)));
+ 			APP_LOG(APP_LOG_LEVEL_INFO,"Malloc succesfully allocated memory (num_chars * sizeof(char) = %i * %i)",
+ 				num_chars, (int)(sizeof(char)));
  			phone_is_connected = true;
  		}
  		memcpy(calendar_date_str, t->value->cstring, strlen(t->value->cstring));
