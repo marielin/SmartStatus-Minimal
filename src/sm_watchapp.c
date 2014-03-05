@@ -150,12 +150,12 @@ static void apptDisplay(char *appt_string) {
 	
 		//	Determine the variables
 	static int appt_day;
-					strncpy(stringBuffer, appt_string,2);
+					strncpy(stringBuffer, appt_string+3,2);
 					appt_day = string2number(stringBuffer);
 					APP_LOG(APP_LOG_LEVEL_DEBUG,"appt_day is    %i",appt_day);
 
 	static int appt_month;
-					strncpy(stringBuffer, appt_string+3,2);
+					strncpy(stringBuffer, appt_string,2);
 					appt_month = string2number(stringBuffer);
 					APP_LOG(APP_LOG_LEVEL_DEBUG,"appt_month is  %i",appt_month);
 
@@ -211,11 +211,11 @@ static void apptDisplay(char *appt_string) {
 		}
 	}
 				if (event_is_past) {
-					snprintf(date_of_appt,30, STRING_EVENT_IS_PAST,appt_day, month_of_year[interm]);
+					snprintf(date_of_appt,30, STRING_EVENT_IS_PAST,month_of_year[interm], appt_day);
 					event_is_all_day = true;
 					APP_LOG(APP_LOG_LEVEL_DEBUG,"Event has started in the past, not today");
 				} else if (days_difference > 4) {
-					snprintf(date_of_appt, 30, STRING_EVENT_FUTURE_GLOBAL,appt_day, month_of_year[interm], appt_hour,appt_minute);
+					snprintf(date_of_appt, 30, STRING_EVENT_FUTURE_GLOBAL,month_of_year[interm], appt_day, appt_hour,appt_minute);
 					event_is_today = false; // Just so we don't write the time again
 					time_string[0] = '\0';
 				} else if (days_difference != 0) {
@@ -517,9 +517,9 @@ if (((units_changed & MINUTE_UNIT) == MINUTE_UNIT) || (!Watch_Face_Initialized) 
 	 	// Print the result
 
 
-   snprintf(date_text, sizeof(date_text), "%s %i %s", day_of_week[day_int], tick_time->tm_mday, month_of_year[month_int]);
+   snprintf(date_text, sizeof(date_text), "%s, %s %i", day_of_week[day_int], month_of_year[month_int], tick_time->tm_mday);
    text_layer_set_text(text_date_layer, date_text);
-	  APP_LOG(APP_LOG_LEVEL_INFO, "Displayed date : [%s %i %s]", day_of_week[day_int], tick_time->tm_mday, month_of_year[month_int]);
+	  APP_LOG(APP_LOG_LEVEL_INFO, "Displayed date : [%s, %s %i]", day_of_week[day_int], month_of_year[month_int], tick_time->tm_mday);
   	}
 
   if (clock_is_24h_style()) {
