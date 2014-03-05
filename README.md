@@ -41,4 +41,4 @@ Smart Buttons :
 * UP (_long **3** seconds hold_) — Reminds you you're disconnected, but still tries to fetch for iPhone
 * MIDDLE — Display Weather details
 * DOWN — Turn off the Pebble's Light
-* DOWN (_long **0.5** seconds hold_) — Turn on the Pebble's Light for 2 minutes (Really handy overnight! :crescent_moon:)
+* DOWN (_long **0.5** seconds hold_) — Turn on the Pebble's Light for 2 minutes (Really handy in the dark! :crescent_moon:)
