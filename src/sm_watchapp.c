@@ -6,6 +6,7 @@
 	This WatchFace is a (deeply) modified version of SmartStatus
 	All credits go to Robhh
 	© Robhh : https://github.com/robhh/SmartStatus-AppStore
+	© Alexandre Jouandin : https://github.com/Allezxandre/Smart-FrenchIze
 */
 
 #define STRING_LENGTH 255
@@ -82,7 +83,7 @@ static uint32_t s_sequence_number = 0xFFFFFFFE;
 
 // Calendar Appointments
 
-/* Convert letter to digit */
+/* Convert letter to digit (by Opasco) */
 int letter2digit(char letter) {
 	if (letter == '\0') {
 		APP_LOG(APP_LOG_LEVEL_ERROR, "letter2digit failed!");
@@ -95,7 +96,7 @@ int letter2digit(char letter) {
 	return -1;
 }
 
-/* Convert string to number */
+/* Convert string to number (by Opasco) */
 static int string2number(char *string) {
 	int result = 0;
 	static int32_t offset;
