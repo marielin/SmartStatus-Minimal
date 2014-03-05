@@ -1,6 +1,6 @@
-SmartFrenchIze Watch App
+SmartFrenchIze WatchApp — *ENGLISH*
 =====================
-![Smartwatch+ Banner](https://raw.github.com/Allezxandre/SmartStatus-AppStore/master/AppStore%20Assets/SmartFrenchIze-Header.png)
+![Smartwatch+ Banner](/AppStore\ Assets/SmartFrenchIze-Header.png)
 
 ### Download
 [Follow this link](https://github.com/Allezxandre/Smart-FrenchIze/releases) for the latest build
@@ -14,8 +14,7 @@ Need Smartwatch+ on your iPhone? Here you go :
 
 ### Features
 
-Ceci est une version modifiée de la WatchApp de Robhh. C'est une *WatchApp* se connectant à l'iPhone et affichant des informations, le tout intelligement, et en français.
-This is a custom version of Robhh's SmartStatus WatchApp. 
+This is a custom, personnal version of Robhh's SmartStatus WatchApp with some good improvements
 #### Original SmartStatus features
 * Weather Forecast
 * iPhone Battery
@@ -43,5 +42,3 @@ Smart Buttons :
 * MIDDLE — Display Weather details
 * DOWN — Turn off the Pebble's Light
 * DOWN (_long **0.5** seconds hold_) — Turn on the Pebble's Light (Really handy overnight! :crescent_moon:)
-
-![SmartStatus watchapp](https://raw.github.com/Allezxandre/SmartStatus-AppStore/master/SmartStatus.jpg)
