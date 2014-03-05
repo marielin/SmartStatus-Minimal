@@ -1,5 +1,5 @@
 {
-    "versionLabel": "2.6",
+    "versionLabel": "2.6.5",
     "uuid": "e944c919-7ae9-4737-8033-ac073a1b8a90",
     "appKeys": {
     "dummy": 0
@@ -89,14 +89,15 @@
             },
             {
                 "type": "font",
-                "name": "FONT_ROBOTO_CONDENSED_21",
-                "file": "fonts/Roboto-Condensed.ttf"
+                "name": "FONT_CONDENSED_21",
+                "file": "fonts/ClearSans-Regular.ttf"
             },
             {
+                "trackingAdjust": -2,
                 "characterRegex": "[:0-9]",
                 "type": "font",
-                "name": "FONT_ROBOTO_BOLD_SUBSET_49",
-                "file": "fonts/Roboto-Bold.ttf"
+                "name": "FONT_BOLD_52",
+                "file": "fonts/ClearSans-Bold.ttf"
             }
         ]
     }
