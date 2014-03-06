@@ -77,6 +77,17 @@ const int WEATHER_IMG_IDS[] = {
   RESOURCE_ID_IMAGE_DISCONNECT
 };
 
+// We'll use this next struct as storage type for events
+typedef struct event {
+	int day;
+	int month;
+	int hour;
+	int min;
+	int description;
+	bool is_today;
+	bool is_all_day;
+	bool is_past;
+} event;
 
 
 static uint32_t s_sequence_number = 0xFFFFFFFE;
@@ -138,50 +149,54 @@ static void apptDisplay(char *appt_string) {
 	static char time_string[20];
 	
 	// Init some variables
-	static char date_time_for_appt[20]; // = "Le XX XXXX à ##h##";
+	static char date_time_for_appt[20]; // = "Le XX XXXX à ##h##"; It's the final string
 	static char stringBuffer[]="XX";
 	time_t now;
 	struct tm *t;
 	now = time(NULL);
 	t = localtime(&now);
-	static bool event_is_today = false;
-	static bool event_is_all_day = false;
-	static bool event_is_past = false;
+
+	// Here comes the appointment :
+	static event appointment;
+
+	appointment.is_today = false;
+	appointment.is_all_day = false;
+	appointment.is_past = false;
 	
 		//	Determine the variables
-	static int appt_day;
+		// appt_day 	> appointment.day
+		// appt_month 	> appointment.month
+		// appt_hour	> appointment.hour
+		// appt_minute	> appointment.min
 					strncpy(stringBuffer, appt_string,2);
-					appt_day = string2number(stringBuffer);
-					APP_LOG(APP_LOG_LEVEL_DEBUG,"appt_day is    %i",appt_day);
+					appointment.day = string2number(stringBuffer);
+					APP_LOG(APP_LOG_LEVEL_DEBUG,"appointment.day is    %i",appointment.day);
 
-	static int appt_month;
 					strncpy(stringBuffer, appt_string+3,2);
-					appt_month = string2number(stringBuffer);
-					APP_LOG(APP_LOG_LEVEL_DEBUG,"appt_month is  %i",appt_month);
+					appointment.month = string2number(stringBuffer);
+					APP_LOG(APP_LOG_LEVEL_DEBUG,"appointment.month is  %i",appointment.month);
 
-	static int appt_hour;
 					if (appt_string[7] == ':'){
 						strncpy(stringBuffer, appt_string+5,2);
 						stringBuffer[0]='0';
-						appt_hour = string2number(stringBuffer);
+						appointment.hour = string2number(stringBuffer);
 					} else if (appt_string[8] == ':') {
 						strncpy(stringBuffer, appt_string+6,2);
-						appt_hour = string2number(stringBuffer);
+						appointment.hour = string2number(stringBuffer);
 					} else {
 						APP_LOG(APP_LOG_LEVEL_DEBUG,"Event is ALL DAY");
-						event_is_all_day = true;
+						appointment.is_all_day = true;
 					}
-				APP_LOG(APP_LOG_LEVEL_DEBUG,"appt_hour is   %i",appt_hour);
+				APP_LOG(APP_LOG_LEVEL_DEBUG,"appointment.hour is   %i",appointment.hour);
 
-	static int appt_minute;
 					if (appt_string[7] == ':'){
 						strncpy(stringBuffer, appt_string+8,2);
-						appt_minute = string2number(stringBuffer);
+						appointment.min = string2number(stringBuffer);
 					} else if (appt_string[8] == ':') {
 						strncpy(stringBuffer, appt_string+9,2);
-						appt_minute = string2number(stringBuffer);
-					} else {APP_LOG(APP_LOG_LEVEL_ERROR, "appt_minute cannot be determined...");}
-				APP_LOG(APP_LOG_LEVEL_DEBUG,"appt_minute is %i",appt_minute);
+						appointment.min = string2number(stringBuffer);
+					} else {APP_LOG(APP_LOG_LEVEL_ERROR, "appointment.min cannot be determined...");}
+				APP_LOG(APP_LOG_LEVEL_DEBUG,"appointment.min is %i",appointment.min);
 		
 	 static int hour_now;
 	 static int min_now;
@@ -193,38 +208,38 @@ static void apptDisplay(char *appt_string) {
 	 mon_now = t->tm_mon + 1;
 		// Check the DAY and Month of Appointment and write it in date_of_appt
 	
-	int interm = (appt_month - 1);
+	int interm = (appointment.month - 1);
 	static int days_difference = 0;
-	if (mon_now != appt_month) {
-		if ((mon_now - appt_month > 1) || (mon_now - appt_month < -1)) {
+	if (mon_now != appointment.month) {
+		if ((mon_now - appointment.month > 1) || (mon_now - appointment.month < -1)) {
 			days_difference = 40; // Set a high value to display the date then
-		} else if (appt_month < mon_now){ // Event has begun last month
-			days_difference = ((mday_now) + (days_per_month[(appt_month + 1)] - appt_day));
-			event_is_past = true;
-		} else if (appt_month > mon_now){ // Event will begin next month
-			days_difference = ((days_per_month[(mday_now + 1)] - mon_now) + appt_day);
+		} else if (appointment.month < mon_now){ // Event has begun last month
+			days_difference = ((mday_now) + (days_per_month[(appointment.month + 1)] - appointment.day));
+			appointment.is_past = true;
+		} else if (appointment.month > mon_now){ // Event will begin next month
+			days_difference = ((days_per_month[(mday_now + 1)] - mon_now) + appointment.day);
 		}
 	} else {
-		days_difference = (appt_day - mday_now);
+		days_difference = (appointment.day - mday_now);
 		if (days_difference < 0) { // That means appointment day is before today
-			event_is_past = true;
+			appointment.is_past = true;
 		}
 	}
-				if (event_is_past) {
-					snprintf(date_of_appt,30, STRING_EVENT_IS_PAST,appt_day, month_of_year[interm]);
-					event_is_all_day = true;
+				if (appointment.is_past) {
+					snprintf(date_of_appt,30, STRING_EVENT_IS_PAST,appointment.day, month_of_year[interm]);
+					appointment.is_all_day = true;
 					APP_LOG(APP_LOG_LEVEL_DEBUG,"Event has started in the past, not today");
 				} else if (days_difference > 4) {
-					snprintf(date_of_appt, 30, STRING_EVENT_FUTURE_GLOBAL,appt_day, month_of_year[interm], appt_hour,appt_minute);
-					event_is_today = false; // Just so we don't write the time again
+					snprintf(date_of_appt, 30, STRING_EVENT_FUTURE_GLOBAL,appointment.day, month_of_year[interm], appointment.hour,appointment.min);
+					appointment.is_today = false; // Just so we don't write the time again
 					time_string[0] = '\0';
 				} else if (days_difference != 0) {
-					snprintf(date_of_appt, 30, STRING_EVENT_FUTURE_SOON, days_from_today[(days_difference - 1)], appt_hour,appt_minute);
-					event_is_today = false; // Just so we don't write the time again
+					snprintf(date_of_appt, 30, STRING_EVENT_FUTURE_SOON, days_from_today[(days_difference - 1)], appointment.hour,appointment.min);
+					appointment.is_today = false; // Just so we don't write the time again
 					time_string[0] = '\0';
 				} else if (days_difference == 0) {
 					date_of_appt[0] = '\0';
-					event_is_today = true;
+					appointment.is_today = true;
 				} else {
 					APP_LOG(APP_LOG_LEVEL_ERROR, "days_difference tests failed :(");
 					return;
@@ -253,13 +268,13 @@ static void apptDisplay(char *appt_string) {
 					}
 	  }
 
-				if ((event_is_all_day) || (!event_is_today)) {
+				if ((appointment.is_all_day) || (!appointment.is_today)) {
 					APP_LOG(APP_LOG_LEVEL_DEBUG, "Do nothing with hour and minutes");
-				} else if (((hour_now) > appt_hour) || (((hour_now) == appt_hour) && (min_now >= appt_minute))) {
+				} else if (((hour_now) > appointment.hour) || (((hour_now) == appointment.hour) && (min_now >= appointment.min))) {
 					int hour_since = 0;
 					int minutes_since = 0;
-					minutes_since = ((min_now) - appt_minute);
-					hour_since = ((hour_now) - appt_hour);
+					minutes_since = ((min_now) - appointment.min);
+					hour_since = ((hour_now) - appointment.hour);
 					if (minutes_since < 0) {
 						hour_since -= 1;
 						minutes_since += 60;
@@ -267,11 +282,11 @@ static void apptDisplay(char *appt_string) {
 					
 					display_hour(hour_since,minutes_since,0);
 
-				} else if (((hour_now) < appt_hour) || (((hour_now) == appt_hour) && (min_now < appt_minute))) {
+				} else if (((hour_now) < appointment.hour) || (((hour_now) == appointment.hour) && (min_now < appointment.min))) {
 					int hour_difference = 0;
 					int minutes_difference = 0;
-					minutes_difference = (appt_minute - (min_now));
-					hour_difference = (appt_hour - (hour_now));
+					minutes_difference = (appointment.min - (min_now));
+					hour_difference = (appointment.hour - (hour_now));
 					if (minutes_difference < 0) {
 						hour_difference -= 1;
 						minutes_difference += 60;
