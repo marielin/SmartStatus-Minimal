@@ -18,7 +18,7 @@
 static bool Watch_Face_Initialized = false;
 static char last_text[] = "No Title";
 static bool phone_is_connected = false;
-static int last_notif_minute = -1;
+static int last_run_minute = -1;
 enum {CALENDAR_LAYER, MUSIC_LAYER, NUM_LAYERS};
 
 static void reset();
@@ -233,9 +233,8 @@ static void apptDisplay(char *appt_string) {
 	 void display_hour (int hour_since, int minutes_since, int quand) {
 	 	if ((minutes_since == 0) && hour_since == 0) {
 						snprintf(time_string,20, STRING_NOW);
-						if (last_notif_minute != min_now) {
+						if (last_run_minute != min_now) {
 							vibes_short_pulse();
-							last_notif_minute = min_now;
 						}
 					} else if (minutes_since == 0) {
 						if (hour_since == 1){
@@ -281,15 +280,15 @@ static void apptDisplay(char *appt_string) {
 					}
 					
 					display_hour(hour_difference,minutes_difference,1);
-					if ((last_notif_minute != min_now) && (minutes_difference == 15) && (hour_difference == 0)) { 
+					if ((last_run_minute != min_now) && (minutes_difference == 15) && (hour_difference == 0)) { 
 							// Vibrate 15 minutes before the event
 							vibes_short_pulse();
-							last_notif_minute = min_now;
 						}
 				}
 
 	strcpy (date_time_for_appt,date_of_appt);
   	strcat (date_time_for_appt,time_string);
+  	last_run_minute = min_now;
 
 	text_layer_set_text(calendar_date_layer, date_time_for_appt); 	
 	layer_set_hidden(animated_layer[CALENDAR_LAYER], 0);
