@@ -18,7 +18,7 @@
 static bool Watch_Face_Initialized = false;
 static char last_text[] = "No Title";
 static bool phone_is_connected = false;
-static int last_notif_minute = -1;
+static int last_run_minute = -1;
 enum {CALENDAR_LAYER, MUSIC_LAYER, NUM_LAYERS};
 
 static void reset();
@@ -233,9 +233,8 @@ static void apptDisplay(char *appt_string) {
 	 void display_hour (int hour_since, int minutes_since, int quand) {
 	 	if ((minutes_since == 0) && hour_since == 0) {
 						snprintf(time_string,20, STRING_NOW);
-						if (last_notif_minute != min_now) {
+						if (last_run_minute != min_now) {
 							vibes_short_pulse();
-							last_notif_minute = min_now;
 						}
 					} else if (minutes_since == 0) {
 						if (hour_since == 1){
@@ -273,23 +272,21 @@ static void apptDisplay(char *appt_string) {
 					int minutes_difference = 0;
 					minutes_difference = (appt_minute - (min_now));
 					hour_difference = (appt_hour - (hour_now));
-					if (minutes_difference == 0) {
-						hour_difference += 1;
-					} else if (minutes_difference < 0) {
+					if (minutes_difference < 0) {
 						hour_difference -= 1;
 						minutes_difference += 60;
 					}
 					
 					display_hour(hour_difference,minutes_difference,1);
-					if ((last_notif_minute != min_now) && (minutes_difference == 15) && (hour_difference == 0)) { 
+					if ((last_run_minute != min_now) && (minutes_difference == 15) && (hour_difference == 0)) { 
 							// Vibrate 15 minutes before the event
 							vibes_short_pulse();
-							last_notif_minute = min_now;
 						}
 				}
 
 	strcpy (date_time_for_appt,date_of_appt);
   	strcat (date_time_for_appt,time_string);
+  	last_run_minute = min_now;
 
 	text_layer_set_text(calendar_date_layer, date_time_for_appt); 	
 	layer_set_hidden(animated_layer[CALENDAR_LAYER], 0);
@@ -595,8 +592,8 @@ static void init(void) {
   const bool animated = true;
   window_stack_push(window, animated);
   // Choose fonts
-font_date = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_ROBOTO_CONDENSED_21));
-font_time = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_ROBOTO_BOLD_SUBSET_49));
+font_date = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_CONDENSED_21));
+font_time = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_BOLD_52));
 
 	//init weather images
 	for (int i=0; i<NUM_WEATHER_IMAGES; i++) {
@@ -695,7 +692,7 @@ font_time = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_ROBOTO_B
 	text_layer_set_text_alignment(text_date_layer, GTextAlignmentCenter);
 	text_layer_set_text_color(text_date_layer, GColorWhite);
 	text_layer_set_background_color(text_date_layer, GColorClear);
-	layer_set_frame(text_layer_get_layer(text_date_layer), GRect(0, 45, 144, 30));
+	layer_set_frame(text_layer_get_layer(text_date_layer), GRect(0, 50, 144, 30));
 	text_layer_set_font(text_date_layer, font_date);
 	layer_add_child(window_layer, text_layer_get_layer(text_date_layer));
 
@@ -704,7 +701,7 @@ font_time = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_ROBOTO_B
 	text_layer_set_text_alignment(text_time_layer, GTextAlignmentCenter);
 	text_layer_set_text_color(text_time_layer, GColorWhite);
 	text_layer_set_background_color(text_time_layer, GColorClear);
-	layer_set_frame(text_layer_get_layer(text_time_layer), GRect(0, -5, 144, 50));
+	layer_set_frame(text_layer_get_layer(text_time_layer), GRect(0, -5, 144, 55));
 	text_layer_set_font(text_time_layer, font_time);
 	layer_add_child(window_layer, text_layer_get_layer(text_time_layer));
 
