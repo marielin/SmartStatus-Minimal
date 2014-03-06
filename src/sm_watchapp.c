@@ -272,9 +272,7 @@ static void apptDisplay(char *appt_string) {
 					int minutes_difference = 0;
 					minutes_difference = (appt_minute - (min_now));
 					hour_difference = (appt_hour - (hour_now));
-					if (minutes_difference == 0) {
-						hour_difference += 1;
-					} else if (minutes_difference < 0) {
+					if (minutes_difference < 0) {
 						hour_difference -= 1;
 						minutes_difference += 60;
 					}
