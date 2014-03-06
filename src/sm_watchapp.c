@@ -83,7 +83,6 @@ typedef struct event {
 	int month;
 	int hour;
 	int min;
-	int description;
 	bool is_today;
 	bool is_all_day;
 	bool is_past;
