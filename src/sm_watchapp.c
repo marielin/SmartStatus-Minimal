@@ -594,8 +594,8 @@ static void init(void) {
   const bool animated = true;
   window_stack_push(window, animated);
   // Choose fonts
-font_date = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_ROBOTO_CONDENSED_21));
-font_time = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_ROBOTO_BOLD_SUBSET_49));
+font_date = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_CONDENSED_21));
+font_time = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_BOLD_52));
 
 	//init weather images
 	for (int i=0; i<NUM_WEATHER_IMAGES; i++) {
