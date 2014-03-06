@@ -694,7 +694,7 @@ font_time = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_BOLD_52)
 	text_layer_set_text_alignment(text_date_layer, GTextAlignmentCenter);
 	text_layer_set_text_color(text_date_layer, GColorWhite);
 	text_layer_set_background_color(text_date_layer, GColorClear);
-	layer_set_frame(text_layer_get_layer(text_date_layer), GRect(0, 45, 144, 30));
+	layer_set_frame(text_layer_get_layer(text_date_layer), GRect(0, 50, 144, 30));
 	text_layer_set_font(text_date_layer, font_date);
 	layer_add_child(window_layer, text_layer_get_layer(text_date_layer));
 
@@ -703,7 +703,7 @@ font_time = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_BOLD_52)
 	text_layer_set_text_alignment(text_time_layer, GTextAlignmentCenter);
 	text_layer_set_text_color(text_time_layer, GColorWhite);
 	text_layer_set_background_color(text_time_layer, GColorClear);
-	layer_set_frame(text_layer_get_layer(text_time_layer), GRect(0, -5, 144, 50));
+	layer_set_frame(text_layer_get_layer(text_time_layer), GRect(0, -5, 144, 55));
 	text_layer_set_font(text_time_layer, font_time);
 	layer_add_child(window_layer, text_layer_get_layer(text_time_layer));
 
