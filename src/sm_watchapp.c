@@ -12,12 +12,15 @@
 #define STRING_LENGTH 255
 #define NUM_WEATHER_IMAGES	9
 #define VIBE_ON_HOUR true
+#define APPOINTMENT_CALC_SAVE 30
+#define APPOINTMENT_NAME_SAVE 31
 
 
 	// Mes variables
 static bool Watch_Face_Initialized = false;
 static char last_text[] = "No Title";
 static bool phone_is_connected = false;
+static bool have_a_save = false;
 static int last_run_minute = -1;
 enum {CALENDAR_LAYER, MUSIC_LAYER, NUM_LAYERS};
 
@@ -88,6 +91,8 @@ typedef struct event {
 	bool is_past;
 } event;
 
+event appointment_save;
+
 
 static uint32_t s_sequence_number = 0xFFFFFFFE;
 
@@ -132,16 +137,7 @@ static int string2number(char *string) {
 static void apptDisplay(char *appt_string) {
 	
 	// Make sure there is no error in argument
-	APP_LOG(APP_LOG_LEVEL_INFO, "apptDisplay started with argument (%s)", appt_string);
-	if (appt_string[0] == '\0') {
-		APP_LOG(APP_LOG_LEVEL_WARNING, "appt_string is empty! ABORTING apptDisplay");
-		return;
-	} else if (sizeof(appt_string) != 4) {
-		APP_LOG(APP_LOG_LEVEL_WARNING, "appt_string is too small (%i characters)! ABORTING apptDisplay", (int)(sizeof(appt_string)));
-			text_layer_set_text(calendar_date_layer, appt_string); 	
-			layer_set_hidden(animated_layer[CALENDAR_LAYER], 0);
-		return;
-	}
+	//APP_LOG(APP_LOG_LEVEL_INFO, "apptDisplay started with argument (%s)", appt_string);
 
 	// The main buffers
 	static char date_of_appt[30];
@@ -157,46 +153,60 @@ static void apptDisplay(char *appt_string) {
 
 	// Here comes the appointment :
 	static event appointment;
+	if ((appt_string[0] == '\0') || (!phone_is_connected)) {
+		APP_LOG(APP_LOG_LEVEL_WARNING, "appt_string is either empty, or the phone is disconnected! Taking back the offline save...");
+		appointment = appointment_save;
+	} else {
+			if (sizeof(appt_string) < 4) {
+			APP_LOG(APP_LOG_LEVEL_WARNING, "appt_string is too small (%i characters)! ABORTING apptDisplay", (int)(sizeof(appt_string)));
+				text_layer_set_text(calendar_date_layer, appt_string); 	
+				layer_set_hidden(animated_layer[CALENDAR_LAYER], 0);
+			return;
+			}
+			appointment.is_today = false;
+			appointment.is_all_day = false;
+			appointment.is_past = false;
+			
+				//	Determine the variables
+				// appt_day 	> appointment.day
+				// appt_month 	> appointment.month
+				// appt_hour	> appointment.hour
+				// appt_minute	> appointment.min
+							strncpy(stringBuffer, appt_string,2);
+							appointment.day = string2number(stringBuffer);
+							APP_LOG(APP_LOG_LEVEL_DEBUG,"appointment.day is    %i",appointment.day);
 
-	appointment.is_today = false;
-	appointment.is_all_day = false;
-	appointment.is_past = false;
+							strncpy(stringBuffer, appt_string+3,2);
+							appointment.month = string2number(stringBuffer);
+							APP_LOG(APP_LOG_LEVEL_DEBUG,"appointment.month is  %i",appointment.month);
+
+							if (appt_string[7] == ':'){
+								strncpy(stringBuffer, appt_string+5,2);
+								stringBuffer[0]='0';
+								appointment.hour = string2number(stringBuffer);
+							} else if (appt_string[8] == ':') {
+								strncpy(stringBuffer, appt_string+6,2);
+								appointment.hour = string2number(stringBuffer);
+							} else {
+								APP_LOG(APP_LOG_LEVEL_DEBUG,"Event is ALL DAY");
+								appointment.is_all_day = true;
+							}
+						APP_LOG(APP_LOG_LEVEL_DEBUG,"appointment.hour is   %i",appointment.hour);
+
+							if (appt_string[7] == ':'){
+								strncpy(stringBuffer, appt_string+8,2);
+								appointment.min = string2number(stringBuffer);
+							} else if (appt_string[8] == ':') {
+								strncpy(stringBuffer, appt_string+9,2);
+								appointment.min = string2number(stringBuffer);
+							} else {APP_LOG(APP_LOG_LEVEL_ERROR, "appointment.min cannot be determined...");}
+						APP_LOG(APP_LOG_LEVEL_DEBUG,"appointment.min is %i",appointment.min);
+				appointment_save = appointment;
+				APP_LOG(APP_LOG_LEVEL_DEBUG,"Current state of save: %02i:%02i %02i/%02i", 
+ 		appointment_save.hour, appointment_save.min, appointment_save.day, appointment_save.month);
+	}
 	
-		//	Determine the variables
-		// appt_day 	> appointment.day
-		// appt_month 	> appointment.month
-		// appt_hour	> appointment.hour
-		// appt_minute	> appointment.min
-					strncpy(stringBuffer, appt_string,2);
-					appointment.day = string2number(stringBuffer);
-					APP_LOG(APP_LOG_LEVEL_DEBUG,"appointment.day is    %i",appointment.day);
 
-					strncpy(stringBuffer, appt_string+3,2);
-					appointment.month = string2number(stringBuffer);
-					APP_LOG(APP_LOG_LEVEL_DEBUG,"appointment.month is  %i",appointment.month);
-
-					if (appt_string[7] == ':'){
-						strncpy(stringBuffer, appt_string+5,2);
-						stringBuffer[0]='0';
-						appointment.hour = string2number(stringBuffer);
-					} else if (appt_string[8] == ':') {
-						strncpy(stringBuffer, appt_string+6,2);
-						appointment.hour = string2number(stringBuffer);
-					} else {
-						APP_LOG(APP_LOG_LEVEL_DEBUG,"Event is ALL DAY");
-						appointment.is_all_day = true;
-					}
-				APP_LOG(APP_LOG_LEVEL_DEBUG,"appointment.hour is   %i",appointment.hour);
-
-					if (appt_string[7] == ':'){
-						strncpy(stringBuffer, appt_string+8,2);
-						appointment.min = string2number(stringBuffer);
-					} else if (appt_string[8] == ':') {
-						strncpy(stringBuffer, appt_string+9,2);
-						appointment.min = string2number(stringBuffer);
-					} else {APP_LOG(APP_LOG_LEVEL_ERROR, "appointment.min cannot be determined...");}
-				APP_LOG(APP_LOG_LEVEL_DEBUG,"appointment.min is %i",appointment.min);
-		
 	 static int hour_now;
 	 static int min_now;
 	 static int mday_now;
@@ -224,18 +234,21 @@ static void apptDisplay(char *appt_string) {
 			appointment.is_past = true;
 		}
 	}
+	APP_LOG(APP_LOG_LEVEL_DEBUG,"Day difference is %i",days_difference);
 				if (appointment.is_past) {
 					snprintf(date_of_appt,30, STRING_EVENT_IS_PAST,appointment.day, month_of_year[interm]);
 					appointment.is_all_day = true;
 					APP_LOG(APP_LOG_LEVEL_DEBUG,"Event has started in the past, not today");
 				} else if (days_difference > 4) {
 					snprintf(date_of_appt, 30, STRING_EVENT_FUTURE_GLOBAL,appointment.day, month_of_year[interm], appointment.hour,appointment.min);
+					APP_LOG(APP_LOG_LEVEL_DEBUG,"Day difference is bigger than 4");
 					appointment.is_today = false; // Just so we don't write the time again
 					time_string[0] = '\0';
 				} else if (days_difference != 0) {
 					snprintf(date_of_appt, 30, STRING_EVENT_FUTURE_SOON, days_from_today[(days_difference - 1)], appointment.hour,appointment.min);
 					appointment.is_today = false; // Just so we don't write the time again
 					time_string[0] = '\0';
+					APP_LOG(APP_LOG_LEVEL_DEBUG,"Day difference is not 0");
 				} else if (days_difference == 0) {
 					date_of_appt[0] = '\0';
 					appointment.is_today = true;
@@ -266,7 +279,13 @@ static void apptDisplay(char *appt_string) {
 						snprintf(time_string,20, STRING_EVENT_MIXED, before_after[quand], hour_since, minutes_since);
 					}
 	  }
-
+APP_LOG(APP_LOG_LEVEL_DEBUG,"appointment is set to %02i:%02i %02i/%02i", 
+ 		appointment.hour, appointment.min, appointment.day, appointment.month);
+if (appointment.is_today) {
+	APP_LOG(APP_LOG_LEVEL_DEBUG,"appointment is today");
+} else {
+	APP_LOG(APP_LOG_LEVEL_DEBUG,"appointment is NOT today");
+}
 				if ((appointment.is_all_day) || (!appointment.is_today)) {
 					APP_LOG(APP_LOG_LEVEL_DEBUG, "Do nothing with hour and minutes");
 				} else if (((hour_now) > appointment.hour) || (((hour_now) == appointment.hour) && (min_now >= appointment.min))) {
@@ -297,7 +316,6 @@ static void apptDisplay(char *appt_string) {
 							vibes_short_pulse();
 						}
 				}
-
 	strcpy (date_time_for_appt,date_of_appt);
   	strcat (date_time_for_appt,time_string);
   	last_run_minute = min_now;
@@ -603,6 +621,13 @@ static void init(void) {
 	.appear = window_appear,
 	.disappear = window_disappear
   });
+	if (persist_exists(APPOINTMENT_CALC_SAVE)) {
+		APP_LOG(APP_LOG_LEVEL_INFO,"We have a backup ! Reading appointment_save...");
+		persist_read_data(APPOINTMENT_CALC_SAVE, &appointment_save, sizeof(appointment_save));
+		APP_LOG(APP_LOG_LEVEL_DEBUG,"Current state of save: %02i:%02i %02i/%02i", 
+ 		appointment_save.hour, appointment_save.min, appointment_save.day, appointment_save.month);
+ 		have_a_save = true;
+	}
   const bool animated = true;
   window_stack_push(window, animated);
   // Choose fonts
@@ -775,7 +800,11 @@ font_time = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_BOLD_52)
 
 	bluetooth_connection_service_subscribe(bluetoothChanged);
 	battery_state_service_subscribe(batteryChanged);
-
+	if (!phone_is_connected) {
+		APP_LOG(APP_LOG_LEVEL_INFO,"Crash in 3... 2... 1...");
+		if (have_a_save) {apptDisplay("");}
+		APP_LOG(APP_LOG_LEVEL_INFO,"WOW ! You survived!");
+	}
 }
 
 static void deinit(void) {
@@ -822,6 +851,12 @@ static void deinit(void) {
 	text_layer_destroy(calendar_text_layer);
 	text_layer_destroy(music_artist_layer);
 	text_layer_destroy(music_song_layer);
+	
+	persist_write_data(APPOINTMENT_CALC_SAVE, &appointment_save, sizeof(appointment_save));
+	event buffer_event;
+	persist_read_data(APPOINTMENT_CALC_SAVE, &buffer_event, sizeof(buffer_event));
+ 	APP_LOG(APP_LOG_LEVEL_DEBUG,"Saved calendar calculations : Hour : %02i:%02i Date : %02i/%02i", 
+ 		buffer_event.hour, buffer_event.min, buffer_event.day, buffer_event.month);
 	
 	if (calendar_date_str != NULL) {
  		free(calendar_date_str);
