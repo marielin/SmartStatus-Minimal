@@ -331,6 +331,7 @@ static void prepare_for_blackout() {
 	persist_read_data(APPOINTMENT_CALC_SAVE, &buffer_event, sizeof(buffer_event));
  	APP_LOG(APP_LOG_LEVEL_DEBUG,"[S] Calendar time format %02ih%02i, date: %02i/%02i", 
  		buffer_event.hour, buffer_event.min, buffer_event.day, buffer_event.month);
+ }
 
 AppMessageResult sm_message_out_get(DictionaryIterator **iter_out) {
     AppMessageResult result = app_message_outbox_begin(iter_out);
