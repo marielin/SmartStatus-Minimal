@@ -129,7 +129,7 @@ static int string2number(char *string) {
 		result = result + (unit * digit);
 		offset--;
 	}
-	APP_LOG(APP_LOG_LEVEL_DEBUG, "string2number(%s) -> %i", string, result);
+	//APP_LOG(APP_LOG_LEVEL_DEBUG, "string2number(%s) -> %i", string, result);
 	return result;
 }
 
@@ -155,6 +155,10 @@ static void apptDisplay(char *appt_string) {
 	if ((appt_string[0] == '\0') || (!phone_is_connected)) {
 		APP_LOG(APP_LOG_LEVEL_WARNING, "appt_string is either empty, or the phone is disconnected! Taking back the offline save...");
 		appointment = appointment_save;
+		APP_LOG(APP_LOG_LEVEL_DEBUG,"[ ] appointment		: %02i:%02i %02i/%02i", 
+ 		appointment.hour, appointment.min, appointment.day, appointment.month);
+		APP_LOG(APP_LOG_LEVEL_DEBUG,"[x] appointment_save	: %02i:%02i %02i/%02i", 
+ 		appointment_save.hour, appointment_save.min, appointment_save.day, appointment_save.month);
 	} else {
 			if (sizeof(appt_string) < 4) {
 			APP_LOG(APP_LOG_LEVEL_WARNING, "appt_string is too small (%i characters)! ABORTING apptDisplay", (int)(sizeof(appt_string)));
@@ -173,11 +177,11 @@ static void apptDisplay(char *appt_string) {
 				// appt_minute	> appointment.min
 							strncpy(stringBuffer, appt_string,2);
 							appointment.day = string2number(stringBuffer);
-							APP_LOG(APP_LOG_LEVEL_DEBUG,"appointment.day is    %i",appointment.day);
+							//APP_LOG(APP_LOG_LEVEL_DEBUG,"appointment.day is    %i",appointment.day);
 
 							strncpy(stringBuffer, appt_string+3,2);
 							appointment.month = string2number(stringBuffer);
-							APP_LOG(APP_LOG_LEVEL_DEBUG,"appointment.month is  %i",appointment.month);
+							//APP_LOG(APP_LOG_LEVEL_DEBUG,"appointment.month is  %i",appointment.month);
 
 							if (appt_string[7] == ':'){
 								strncpy(stringBuffer, appt_string+5,2);
@@ -187,10 +191,10 @@ static void apptDisplay(char *appt_string) {
 								strncpy(stringBuffer, appt_string+6,2);
 								appointment.hour = string2number(stringBuffer);
 							} else {
-								APP_LOG(APP_LOG_LEVEL_DEBUG,"Event is ALL DAY");
+								APP_LOG(APP_LOG_LEVEL_DEBUG,"[x] appointment		: ALL DAY");
 								appointment.is_all_day = true;
 							}
-						APP_LOG(APP_LOG_LEVEL_DEBUG,"appointment.hour is   %i",appointment.hour);
+						//APP_LOG(APP_LOG_LEVEL_DEBUG,"appointment.hour is   %i",appointment.hour);
 
 							if (appt_string[7] == ':'){
 								strncpy(stringBuffer, appt_string+8,2);
@@ -199,9 +203,11 @@ static void apptDisplay(char *appt_string) {
 								strncpy(stringBuffer, appt_string+9,2);
 								appointment.min = string2number(stringBuffer);
 							} else {APP_LOG(APP_LOG_LEVEL_ERROR, "appointment.min cannot be determined...");}
-						APP_LOG(APP_LOG_LEVEL_DEBUG,"appointment.min is %i",appointment.min);
+						//APP_LOG(APP_LOG_LEVEL_DEBUG,"appointment.min is %i",appointment.min);
 				appointment_save = appointment;
-				APP_LOG(APP_LOG_LEVEL_DEBUG,"Current state of save: %02i:%02i %02i/%02i", 
+				APP_LOG(APP_LOG_LEVEL_DEBUG,"[x] appointment		: %02i:%02i %02i/%02i", 
+ 		appointment.hour, appointment.min, appointment.day, appointment.month);
+				APP_LOG(APP_LOG_LEVEL_DEBUG,"[ ] appointment_save 	: %02i:%02i %02i/%02i", 
  		appointment_save.hour, appointment_save.min, appointment_save.day, appointment_save.month);
 	}
 	
@@ -215,7 +221,9 @@ static void apptDisplay(char *appt_string) {
 	 mday_now = t->tm_mday;
 	 mon_now = t->tm_mon + 1;
 		// Check the DAY and Month of Appointment and write it in date_of_appt
-	
+	APP_LOG(APP_LOG_LEVEL_DEBUG,"[-] Time now 		: %02i:%02i %02i/%02i",
+ 		hour_now, min_now, mday_now, mon_now);
+
 	int interm = (appointment.month - 1);
 	static int days_difference = 0;
 	if (mon_now != appointment.month) {
@@ -603,6 +611,7 @@ void bluetoothChanged(bool connected) {
 		bitmap_layer_set_bitmap(weather_image, weather_status_imgs[NUM_WEATHER_IMAGES-1]);
 		if (phone_is_connected) {vibes_short_pulse();}
 		display_Notification("iPhone", STRING_DISCONNECTED, 5000);
+		prepare_for_blackout();
 		phone_is_connected = false;
 	}
 	
@@ -806,7 +815,7 @@ font_time = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_BOLD_52)
 		persist_read_data(APPOINTMENT_CALC_SAVE, &appointment_save, sizeof(appointment_save) - 1 );
 		APP_LOG(APP_LOG_LEVEL_DEBUG,"[R] Event Time Format: %02i:%02i %02i/%02i", 
  		appointment_save.hour, appointment_save.min, appointment_save.day, appointment_save.month);
- 		//if (!phone_is_connected) {apptDisplay("");}
+ 		if (!phone_is_connected) {apptDisplay("");}
 	}
 	APP_LOG(APP_LOG_LEVEL_INFO,"Init: ALL SET!");
 }
