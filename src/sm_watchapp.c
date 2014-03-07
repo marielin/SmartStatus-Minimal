@@ -150,10 +150,9 @@ static void apptDisplay(char *appt_string) {
 	// Here comes the appointment :
 	static event appointment;
 	if ((appt_string[0] == '\0')) {
-		APP_LOG(APP_LOG_LEVEL_WARNING, "appt_string is either empty, or the phone is disconnected! Taking back the offline save...");
+		APP_LOG(APP_LOG_LEVEL_WARNING, "appt_string is either empty, or the phone is disconnected!");
 		return;
-		APP_LOG(APP_LOG_LEVEL_DEBUG,"[ ] appointment		: %02i:%02i %02i/%02i", appointment.hour, appointment.min, appointment.day, appointment.month);
-		} else {
+	} else {
 			if (sizeof(appt_string) < 4) {
 			APP_LOG(APP_LOG_LEVEL_WARNING, "appt_string is too small (%i characters)! ABORTING apptDisplay", (int)(sizeof(appt_string)));
 				text_layer_set_text(calendar_date_layer, appt_string); 	
