@@ -12,15 +12,14 @@
 #define STRING_LENGTH 255
 #define NUM_WEATHER_IMAGES	9
 #define VIBE_ON_HOUR true
-#define APPOINTMENT_CALC_SAVE 30
-#define APPOINTMENT_NAME_SAVE 31
+#define APPOINTMENT_CALC_SAVE 35
+#define APPOINTMENT_NAME_SAVE 36
 
 
 	// Mes variables
 static bool Watch_Face_Initialized = false;
 static char last_text[] = "No Title";
 static bool phone_is_connected = false;
-static bool have_a_save = false;
 static int last_run_minute = -1;
 enum {CALENDAR_LAYER, MUSIC_LAYER, NUM_LAYERS};
 
@@ -91,7 +90,7 @@ typedef struct event {
 	bool is_past;
 } event;
 
-event appointment_save;
+static event appointment_save;
 
 
 static uint32_t s_sequence_number = 0xFFFFFFFE;
@@ -326,6 +325,12 @@ if (appointment.is_today) {
 
 // End of calendar appointment utilities
 
+static void prepare_for_blackout() {
+	persist_write_data(APPOINTMENT_CALC_SAVE, &appointment_save, sizeof(appointment_save));
+	event buffer_event;
+	persist_read_data(APPOINTMENT_CALC_SAVE, &buffer_event, sizeof(buffer_event));
+ 	APP_LOG(APP_LOG_LEVEL_DEBUG,"[S] Calendar time format %02ih%02i, date: %02i/%02i", 
+ 		buffer_event.hour, buffer_event.min, buffer_event.day, buffer_event.month);
 
 AppMessageResult sm_message_out_get(DictionaryIterator **iter_out) {
     AppMessageResult result = app_message_outbox_begin(iter_out);
@@ -621,13 +626,7 @@ static void init(void) {
 	.appear = window_appear,
 	.disappear = window_disappear
   });
-	if (persist_exists(APPOINTMENT_CALC_SAVE)) {
-		APP_LOG(APP_LOG_LEVEL_INFO,"We have a backup ! Reading appointment_save...");
-		persist_read_data(APPOINTMENT_CALC_SAVE, &appointment_save, sizeof(appointment_save));
-		APP_LOG(APP_LOG_LEVEL_DEBUG,"Current state of save: %02i:%02i %02i/%02i", 
- 		appointment_save.hour, appointment_save.min, appointment_save.day, appointment_save.month);
- 		have_a_save = true;
-	}
+
   const bool animated = true;
   window_stack_push(window, animated);
   // Choose fonts
@@ -792,7 +791,7 @@ font_time = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_BOLD_52)
 
 
 	active_layer = CALENDAR_LAYER;
-
+	APP_LOG(APP_LOG_LEVEL_DEBUG,"Init: Done with layers");
 	reset();
 
   	//tick_timer_service_subscribe(MINUTE_UNIT, handle_minute_tick);
@@ -800,11 +799,15 @@ font_time = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_BOLD_52)
 
 	bluetooth_connection_service_subscribe(bluetoothChanged);
 	battery_state_service_subscribe(batteryChanged);
-	if (!phone_is_connected) {
-		APP_LOG(APP_LOG_LEVEL_INFO,"Crash in 3... 2... 1...");
-		if (have_a_save) {apptDisplay("");}
-		APP_LOG(APP_LOG_LEVEL_INFO,"WOW ! You survived!");
+	APP_LOG(APP_LOG_LEVEL_DEBUG,"Init: Starting persistent storage fetch");
+	if (persist_exists(APPOINTMENT_CALC_SAVE)) {
+		APP_LOG(APP_LOG_LEVEL_INFO,"We have a backup ! Reading appointment_save...");
+		persist_read_data(APPOINTMENT_CALC_SAVE, &appointment_save, sizeof(appointment_save) - 1 );
+		APP_LOG(APP_LOG_LEVEL_DEBUG,"[R] Event Time Format: %02i:%02i %02i/%02i", 
+ 		appointment_save.hour, appointment_save.min, appointment_save.day, appointment_save.month);
+ 		//if (!phone_is_connected) {apptDisplay("");}
 	}
+	APP_LOG(APP_LOG_LEVEL_INFO,"Init: ALL SET!");
 }
 
 static void deinit(void) {
@@ -852,11 +855,7 @@ static void deinit(void) {
 	text_layer_destroy(music_artist_layer);
 	text_layer_destroy(music_song_layer);
 	
-	persist_write_data(APPOINTMENT_CALC_SAVE, &appointment_save, sizeof(appointment_save));
-	event buffer_event;
-	persist_read_data(APPOINTMENT_CALC_SAVE, &buffer_event, sizeof(buffer_event));
- 	APP_LOG(APP_LOG_LEVEL_DEBUG,"Saved calendar calculations : Hour : %02i:%02i Date : %02i/%02i", 
- 		buffer_event.hour, buffer_event.min, buffer_event.day, buffer_event.month);
+	prepare_for_blackout();
 	
 	if (calendar_date_str != NULL) {
  		free(calendar_date_str);
