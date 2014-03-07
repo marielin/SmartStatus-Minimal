@@ -12,8 +12,7 @@
 #define STRING_LENGTH 255
 #define NUM_WEATHER_IMAGES	9
 #define VIBE_ON_HOUR true
-#define APPOINTMENT_CALC_SAVE 35
-#define APPOINTMENT_NAME_SAVE 36
+
 
 
 	// Mes variables
@@ -90,8 +89,6 @@ typedef struct event {
 	bool is_past;
 } event;
 
-static event appointment_save;
-
 
 static uint32_t s_sequence_number = 0xFFFFFFFE;
 
@@ -129,7 +126,7 @@ static int string2number(char *string) {
 		result = result + (unit * digit);
 		offset--;
 	}
-	//APP_LOG(APP_LOG_LEVEL_DEBUG, "string2number(%s) -> %i", string, result);
+	APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "string2number(%s) -> %i", string, result);
 	return result;
 }
 
@@ -152,14 +149,11 @@ static void apptDisplay(char *appt_string) {
 
 	// Here comes the appointment :
 	static event appointment;
-	if ((appt_string[0] == '\0') || (!phone_is_connected)) {
+	if ((appt_string[0] == '\0')) {
 		APP_LOG(APP_LOG_LEVEL_WARNING, "appt_string is either empty, or the phone is disconnected! Taking back the offline save...");
-		appointment = appointment_save;
-		APP_LOG(APP_LOG_LEVEL_DEBUG,"[ ] appointment		: %02i:%02i %02i/%02i", 
- 		appointment.hour, appointment.min, appointment.day, appointment.month);
-		APP_LOG(APP_LOG_LEVEL_DEBUG,"[x] appointment_save	: %02i:%02i %02i/%02i", 
- 		appointment_save.hour, appointment_save.min, appointment_save.day, appointment_save.month);
-	} else {
+		return;
+		APP_LOG(APP_LOG_LEVEL_DEBUG,"[ ] appointment		: %02i:%02i %02i/%02i", appointment.hour, appointment.min, appointment.day, appointment.month);
+		} else {
 			if (sizeof(appt_string) < 4) {
 			APP_LOG(APP_LOG_LEVEL_WARNING, "appt_string is too small (%i characters)! ABORTING apptDisplay", (int)(sizeof(appt_string)));
 				text_layer_set_text(calendar_date_layer, appt_string); 	
@@ -177,11 +171,11 @@ static void apptDisplay(char *appt_string) {
 				// appt_minute	> appointment.min
 							strncpy(stringBuffer, appt_string,2);
 							appointment.day = string2number(stringBuffer);
-							//APP_LOG(APP_LOG_LEVEL_DEBUG,"appointment.day is    %i",appointment.day);
+							APP_LOG(APP_LOG_LEVEL_DEBUG,"appointment.day is    %i",appointment.day);
 
 							strncpy(stringBuffer, appt_string+3,2);
 							appointment.month = string2number(stringBuffer);
-							//APP_LOG(APP_LOG_LEVEL_DEBUG,"appointment.month is  %i",appointment.month);
+							APP_LOG(APP_LOG_LEVEL_DEBUG,"appointment.month is  %i",appointment.month);
 
 							if (appt_string[7] == ':'){
 								strncpy(stringBuffer, appt_string+5,2);
@@ -194,7 +188,7 @@ static void apptDisplay(char *appt_string) {
 								APP_LOG(APP_LOG_LEVEL_DEBUG,"[x] appointment		: ALL DAY");
 								appointment.is_all_day = true;
 							}
-						//APP_LOG(APP_LOG_LEVEL_DEBUG,"appointment.hour is   %i",appointment.hour);
+						APP_LOG(APP_LOG_LEVEL_DEBUG,"appointment.hour is   %i",appointment.hour);
 
 							if (appt_string[7] == ':'){
 								strncpy(stringBuffer, appt_string+8,2);
@@ -203,13 +197,9 @@ static void apptDisplay(char *appt_string) {
 								strncpy(stringBuffer, appt_string+9,2);
 								appointment.min = string2number(stringBuffer);
 							} else {APP_LOG(APP_LOG_LEVEL_ERROR, "appointment.min cannot be determined...");}
-						//APP_LOG(APP_LOG_LEVEL_DEBUG,"appointment.min is %i",appointment.min);
-				appointment_save = appointment;
-				APP_LOG(APP_LOG_LEVEL_DEBUG,"[x] appointment		: %02i:%02i %02i/%02i", 
- 		appointment.hour, appointment.min, appointment.day, appointment.month);
-				APP_LOG(APP_LOG_LEVEL_DEBUG,"[ ] appointment_save 	: %02i:%02i %02i/%02i", 
- 		appointment_save.hour, appointment_save.min, appointment_save.day, appointment_save.month);
-	}
+						APP_LOG(APP_LOG_LEVEL_DEBUG,"appointment.min is %i",appointment.min);
+				APP_LOG(APP_LOG_LEVEL_DEBUG,"[x] appointment		: %02i:%02i %02i/%02i", appointment.hour, appointment.min, appointment.day, appointment.month);
+				}
 	
 
 	 static int hour_now;
@@ -286,8 +276,6 @@ static void apptDisplay(char *appt_string) {
 						snprintf(time_string,20, STRING_EVENT_MIXED, before_after[quand], hour_since, minutes_since);
 					}
 	  }
-APP_LOG(APP_LOG_LEVEL_DEBUG,"appointment is set to %02i:%02i %02i/%02i", 
- 		appointment.hour, appointment.min, appointment.day, appointment.month);
 if (appointment.is_today) {
 	APP_LOG(APP_LOG_LEVEL_DEBUG,"appointment is today");
 } else {
@@ -332,14 +320,6 @@ if (appointment.is_today) {
 }
 
 // End of calendar appointment utilities
-
-static void prepare_for_blackout() {
-	persist_write_data(APPOINTMENT_CALC_SAVE, &appointment_save, sizeof(appointment_save));
-	event buffer_event;
-	persist_read_data(APPOINTMENT_CALC_SAVE, &buffer_event, sizeof(buffer_event));
- 	APP_LOG(APP_LOG_LEVEL_DEBUG,"[S] Calendar time format %02ih%02i, date: %02i/%02i", 
- 		buffer_event.hour, buffer_event.min, buffer_event.day, buffer_event.month);
- }
 
 AppMessageResult sm_message_out_get(DictionaryIterator **iter_out) {
     AppMessageResult result = app_message_outbox_begin(iter_out);
@@ -611,7 +591,6 @@ void bluetoothChanged(bool connected) {
 		bitmap_layer_set_bitmap(weather_image, weather_status_imgs[NUM_WEATHER_IMAGES-1]);
 		if (phone_is_connected) {vibes_short_pulse();}
 		display_Notification("iPhone", STRING_DISCONNECTED, 5000);
-		prepare_for_blackout();
 		phone_is_connected = false;
 	}
 	
@@ -809,14 +788,6 @@ font_time = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_BOLD_52)
 
 	bluetooth_connection_service_subscribe(bluetoothChanged);
 	battery_state_service_subscribe(batteryChanged);
-	APP_LOG(APP_LOG_LEVEL_DEBUG,"Init: Starting persistent storage fetch");
-	if (persist_exists(APPOINTMENT_CALC_SAVE)) {
-		APP_LOG(APP_LOG_LEVEL_INFO,"We have a backup ! Reading appointment_save...");
-		persist_read_data(APPOINTMENT_CALC_SAVE, &appointment_save, sizeof(appointment_save) - 1 );
-		APP_LOG(APP_LOG_LEVEL_DEBUG,"[R] Event Time Format: %02i:%02i %02i/%02i", 
- 		appointment_save.hour, appointment_save.min, appointment_save.day, appointment_save.month);
- 		if (!phone_is_connected) {apptDisplay("");}
-	}
 	APP_LOG(APP_LOG_LEVEL_INFO,"Init: ALL SET!");
 }
 
@@ -864,8 +835,6 @@ static void deinit(void) {
 	text_layer_destroy(calendar_text_layer);
 	text_layer_destroy(music_artist_layer);
 	text_layer_destroy(music_song_layer);
-	
-	prepare_for_blackout();
 	
 	if (calendar_date_str != NULL) {
  		free(calendar_date_str);

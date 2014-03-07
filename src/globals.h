@@ -76,10 +76,10 @@
 #define SM_SONG_LENGTH_KEY          0xFC48
 #define SM_STATUS_UPD_WEATHER_KEY   0xFC49
 #define SM_STATUS_UPD_CAL_KEY       0xFC4A
-#define SM_NAV_ICON_KEY             0xFC4B
-#define SM_NAV_INSTRUCTIONS_KEY     0xFC4C
-#define SM_STREAMING_BMP_KEY    	0xFC4D
-#define SM_CANVAS_DICT_KEY          0xFC4E
+
+// Persistent Storage
+#define APPOINTMENT_CALC_SAVE 95
+#define APPOINTMENT_NAME_SAVE 97
 
 #define STATUS_SCREEN_APP 			NUM_APPS
 
