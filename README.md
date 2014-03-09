@@ -31,3 +31,8 @@ Bien sur, cette version modifiée inclut en plus les fonctionnalités de la vers
 (il y a beaucoup d’autres améliorations sur le calendrier, je vous laisse les découvrir :smile: )
 
 ![SmartStatus watchapp](https://raw.github.com/Allezxandre/SmartStatus-AppStore/master/SmartStatus.jpg)
+
+--
+##### Dons (Merci)
+Bitcoin : 16JZUsQLa6PsccTxrvdhyxAHH38TEGk5vo 
+PayPal : alexandre@jouandin.com
