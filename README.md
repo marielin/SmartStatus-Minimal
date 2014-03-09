@@ -34,5 +34,5 @@ Bien sur, cette version modifiée inclut en plus les fonctionnalités de la vers
 
 --
 ##### Dons (Merci)
-Bitcoin : 16JZUsQLa6PsccTxrvdhyxAHH38TEGk5vo 
-PayPal : alexandre@jouandin.com
+* Bitcoin : 16JZUsQLa6PsccTxrvdhyxAHH38TEGk5vo 
+* PayPal : alexandre@jouandin.com
