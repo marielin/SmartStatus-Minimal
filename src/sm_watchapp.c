@@ -8,7 +8,7 @@
 	© Robhh : https://github.com/robhh/SmartStatus-AppStore
 	© Alexandre Jouandin : https://github.com/Allezxandre/Smart-FrenchIze
 */
-#define DEBUG 1
+//#define DEBUG 1
 #define STRING_LENGTH 255
 #define NUM_WEATHER_IMAGES	9
 #define VIBE_ON_HOUR true
