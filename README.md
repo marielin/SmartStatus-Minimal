@@ -20,12 +20,12 @@ I made this SmartStatus mod because all the other SmartStatus apps I found weren
 - Added seconds indicator (my personal preference)
 - Added high/low temperature
 - Added Graphical battery indicator for Pebble in upper-right corner
--- small flag and discharging: <40% battery
--- large flag and discharging: <20% battery
--- striped flag and charging: >80% battery
+ - small flag and discharging: <40% battery
+ - large flag and discharging: <20% battery
+ - striped flag and charging: >80% battery
 - Fixed "For" and "In" strings for 12hr time
 
-##Changed the button uses:
+####Changed the button uses:
 Calendar/Weather Panes:
 - Up click: Siri
 - Up hold: Find My iPhone
