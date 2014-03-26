@@ -657,7 +657,7 @@ void handle_second_tick(struct tm *tick_time, TimeUnits units_changed) {
   };
   
   //update calendar
-  if (!Watch_Face_Initialized && (calendar_date_str != NULL)) {
+  if ((!Watch_Face_Initialized || ((min != tick_time->tm_min) && (tick_time->tm_sec == 0))) && (calendar_date_str != NULL)) {
     apptDisplay(calendar_date_str);
   }
   
@@ -671,7 +671,7 @@ void handle_second_tick(struct tm *tick_time, TimeUnits units_changed) {
     strftime(time_text, sizeof(time_text), time_format, tick_time);
     text_layer_set_text(text_time_layer, time_text);
     
-    //vibrate/update calendar on the half hour
+    //vibrate on the half hour
     if (tick_time->tm_min % 30 == 0) {
       vibes_enqueue_custom_pattern(tinytick);
     }
@@ -717,7 +717,7 @@ void bluetoothChanged(bool connected) {
 		phone_is_connected = true;
 	} else {
 		bitmap_layer_set_bitmap(weather_image, weather_status_imgs[NUM_WEATHER_IMAGES-1]);
-		if (phone_is_connected) {vibes_short_pulse();}
+		if (phone_is_connected) {vibes_double_pulse();}
 		display_Notification("iPhone", STRING_DISCONNECTED, 5000);
 		phone_is_connected = false;
 	}
