@@ -19,7 +19,7 @@ Added numberical phone battery back
 Added vibrate sightly on the half-hour
 Added seconds indicator (my personal preference)
 Added high/low temperature
-#Added Graphical battery indicator for Pebble in upper-right corner
+Added Graphical battery indicator for Pebble in upper-right corner
 - small flag and discharging: <40% battery
 - large flag and discharging: <20% battery
 - striped flag and charging: >80% battery
