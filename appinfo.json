@@ -1,16 +1,16 @@
 {
-    "versionLabel": "2.6.6",
+    "versionLabel": "2.8",
     "uuid": "e944c919-7ae9-4737-8033-ac073a1b8a90",
     "appKeys": {
     "dummy": 0
     },
-    "longName": "SmartStatus",
+    "longName": "SmartStatus Minimal",
     "versionCode": 1,
     "capabilities": [
         ""
     ],
     "shortName": "SmartStatus",
-    "companyName": "Alexandre Jouandin",
+    "companyName": "Marie Lin, Alexandre Jouandin",
     "watchapp": {
         "watchface": false
     },
@@ -90,14 +90,13 @@
             {
                 "type": "font",
                 "name": "FONT_CONDENSED_21",
-                "file": "fonts/ClearSans-Regular.ttf"
+                "file": "fonts/Roboto-Condensed.ttf"
             },
             {
-                "trackingAdjust": -2,
                 "characterRegex": "[:0-9]",
                 "type": "font",
-                "name": "FONT_BOLD_52",
-                "file": "fonts/ClearSans-Bold.ttf"
+                "name": "FONT_BOLD_49",
+                "file": "fonts/Roboto-Bold.ttf"
             }
         ]
     }
