@@ -735,7 +735,7 @@ void batteryChanged(BatteryChargeState batt) {
 
 
 static void init(void) {
-	APP_LOG(APP_LOG_LEVEL_INFO,"STARTING SmartFrenchIze");
+	APP_LOG(APP_LOG_LEVEL_INFO,"STARTING SmartStatus");
   window = window_create();
   window_set_fullscreen(window, true);
   window_set_click_config_provider(window, click_config_provider);
@@ -768,11 +768,11 @@ font_time = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_BOLD_49)
 	layer_add_child(window_layer, bitmap_layer_get_layer(background_image));
 	bitmap_layer_set_bitmap(background_image, bg_image);
 	
-	text_battery_layer = text_layer_create(GRect(112, 44, 20, 20));
-	text_layer_set_text_alignment(text_battery_layer, GTextAlignmentLeft);
+	text_battery_layer = text_layer_create(GRect(107, 44, 20, 20));
+	text_layer_set_text_alignment(text_battery_layer, GTextAlignmentRight);
 	text_layer_set_text_color(text_battery_layer, GColorWhite);
 	text_layer_set_background_color(text_battery_layer, GColorClear);
-	text_layer_set_font(text_battery_layer,  fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
+	text_layer_set_font(text_battery_layer,  fonts_get_system_font(FONT_KEY_GOTHIC_18));
 	layer_add_child(window_layer, text_layer_get_layer(text_battery_layer));
 	text_layer_set_text(text_battery_layer, "--");
 
@@ -813,12 +813,12 @@ font_time = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_BOLD_49)
 		weather_img = NUM_WEATHER_IMAGES - 1;
 	}
 
-	weather_image = bitmap_layer_create(GRect(52, 3, 40, 40));
+	weather_image = bitmap_layer_create(GRect(48, 3, 40, 40));
 	layer_add_child(animated_layer[WEATHER_LAYER], bitmap_layer_get_layer(weather_image));
 	bitmap_layer_set_bitmap(weather_image, weather_status_imgs[weather_img]);
 
 
-	text_weather_temp_layer = text_layer_create(GRect(7, 5, 48, 40));
+	text_weather_temp_layer = text_layer_create(GRect(3, 4, 48, 40));
 	text_layer_set_text_alignment(text_weather_temp_layer, GTextAlignmentCenter);
 	text_layer_set_text_color(text_weather_temp_layer, GColorWhite);
 	text_layer_set_background_color(text_weather_temp_layer, GColorClear);
@@ -826,30 +826,28 @@ font_time = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_BOLD_49)
 	layer_add_child(animated_layer[WEATHER_LAYER], text_layer_get_layer(text_weather_temp_layer));
 	text_layer_set_text(text_weather_temp_layer, "-°");
   
-  text_weather_hi_lo_layer = text_layer_create(GRect(93, 10, 49, 40));
+  text_weather_hi_lo_layer = text_layer_create(GRect(89, 10, 49, 40));
   text_layer_set_text_alignment(text_weather_hi_lo_layer, GTextAlignmentCenter);
 	text_layer_set_text_color(text_weather_hi_lo_layer, GColorWhite);
 	text_layer_set_background_color(text_weather_hi_lo_layer, GColorClear);
 	text_layer_set_font(text_weather_hi_lo_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
 	layer_add_child(animated_layer[WEATHER_LAYER], text_layer_get_layer(text_weather_hi_lo_layer));
 	text_layer_set_text(text_weather_hi_lo_layer, "-/-");
-	
-  //add high/low
   
-  text_day_layer = text_layer_create(GRect(8, 0 + 3 + 55, 144-8, 25));
+  text_day_layer = text_layer_create(GRect(8, 0 + 3 + 55 + 6, 144-8, 25));
   text_layer_set_text_color(text_day_layer, GColorWhite);
   text_layer_set_background_color(text_day_layer, GColorClear);
   text_layer_set_font(text_day_layer, font_date);
   layer_add_child(window_layer, text_layer_get_layer(text_day_layer));
   
-  text_date_layer = text_layer_create(GRect(8, 21 + 3 + 55, 144-8, 25));
+  text_date_layer = text_layer_create(GRect(8, 21 + 3 + 55 + 6, 144-8, 25));
   text_layer_set_text_color(text_date_layer, GColorWhite);
   text_layer_set_background_color(text_date_layer, GColorClear);
   text_layer_set_font(text_date_layer, font_date);
   layer_add_child(window_layer, text_layer_get_layer(text_date_layer));
 
 
-  text_time_layer = text_layer_create(GRect(7, 47 + 3 + 55, 144-7, 49));
+  text_time_layer = text_layer_create(GRect(7, 47 + 3 + 55 + 6, 144-7, 49));
 	text_layer_set_text_alignment(text_time_layer, GTextAlignmentLeft);
 	text_layer_set_text_color(text_time_layer, GColorWhite);
 	text_layer_set_background_color(text_time_layer, GColorClear);
@@ -857,7 +855,7 @@ font_time = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_BOLD_49)
 	text_layer_set_font(text_time_layer, font_time);
 	layer_add_child(window_layer, text_layer_get_layer(text_time_layer));
   
-  text_seconds_layer = text_layer_create(GRect(0, 90 + 7, 144-8, 18));
+  text_seconds_layer = text_layer_create(GRect(0, 90 + 7 + 6, 144-8, 18));
   text_layer_set_text_color(text_seconds_layer, GColorWhite);
   text_layer_set_background_color(text_seconds_layer, GColorClear);
   text_layer_set_font(text_seconds_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
@@ -924,7 +922,7 @@ font_time = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_BOLD_49)
 }
 
 static void deinit(void) {
-	APP_LOG(APP_LOG_LEVEL_INFO,"Smart FrenchIze is about to quit...");
+	APP_LOG(APP_LOG_LEVEL_INFO,"SmartStatus is about to quit...");
 	
 	property_animation_destroy((PropertyAnimation*)ani_in);
 	property_animation_destroy((PropertyAnimation*)ani_out);
@@ -1000,7 +998,7 @@ static void deinit(void) {
 
   
   window_destroy(window);
-  APP_LOG(APP_LOG_LEVEL_INFO,"QUIT SmartFrenchIze");
+  APP_LOG(APP_LOG_LEVEL_INFO,"QUIT SmartStatus");
 }
 
 
