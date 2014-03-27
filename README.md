@@ -9,13 +9,14 @@ I made this SmartStatus mod because all the other SmartStatus apps I found weren
 
 ![screenshot](https://raw.github.com/sapphirinedreams/SmartStatus-Minimal/master/screenshot.png)
 
-#### Modifications to Smart-FrenchIze
+#### Modifications to Smart-FrenchIze:
 - Fixed "For" and "In" strings for 12hr time
 - Removed badge counts
 - Removed battery bars
 - Changed shortened day/date to full words
 - Changed font back to original
 - Changed the location of lots of things
+- Changed button functions
 - Added numberical phone battery back
 - Added vibrate sightly on the half-hour
 - Added seconds indicator (my personal preference)
@@ -25,7 +26,7 @@ I made this SmartStatus mod because all the other SmartStatus apps I found weren
  - large flag and discharging: <20% battery
  - striped flag and charging: >80% battery
 
-####Changed the button uses:
+####Button functions:
 Calendar/Weather Panes:
 - Up click: Siri
 - Select click: next pane
@@ -40,3 +41,7 @@ Music Pane:
 - Select hold: play/pause music
 - Down click: volume -
 - Down hold: skip track
+
+####Known bugs:
+- Weather hi/low doesn't load on initialization (refresh to load)
+- Some instability
