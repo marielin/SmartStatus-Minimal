@@ -1,7 +1,7 @@
-SmartStatus Minimal (Cydia)
+SmartStatus Minimal (App Store)
 =====================
 
-**Warning**, This WatchApp is **ONLY** compatible with the Cydia version of SmartWatch+
+**Warning**, This WatchApp is **ONLY** compatible with the App Store version of SmartWatch+
 
 ### Overview
 
