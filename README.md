@@ -9,7 +9,7 @@ I made this SmartStatus mod because all the other SmartStatus apps I found weren
 
 ![screenmontage](https://raw.github.com/sapphirinedreams/SmartStatus-Minimal/master//screenshots/screenmontage.png)
 
-####Download Link: http://cl.ly/Ueyx
+####Download Link: http://cl.ly/UfKL
 
 #### Modifications to Smart-FrenchIze:
 - Fixed "For" and "In" strings for 12hr time
