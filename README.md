@@ -28,7 +28,6 @@ I made this SmartStatus mod because all the other SmartStatus apps I found weren
 ####Changed the button uses:
 Calendar/Weather Panes:
 - Up click: Siri
-- Up hold: Find My iPhone
 - Select click: next pane
 - Select hold: refresh current pane
 - Down click: play/pause music

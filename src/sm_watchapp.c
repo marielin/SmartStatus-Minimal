@@ -522,21 +522,6 @@ static void held_down_button_down(ClickRecognizerRef recognizer, void *context) 
   }
 }
 
-static void notif_find_my_iphone(ClickRecognizerRef recognizer, void *context) {
-	vibes_short_pulse();
-	if (phone_is_connected) {
-		display_Notification(STRING_FIND_IPHONE_CONF_1, STRING_FIND_IPHONE_CONF_2, 5000);
-	} else {
-		display_Notification("iPhone", STRING_DISCONNECTED, 2000);
-	}
-}
-static void find_my_iphone(ClickRecognizerRef recognizer, void *context) {
-	if (phone_is_connected) {
-		vibes_long_pulse();
-	}
-	sendCommand(SM_FIND_MY_PHONE_KEY);
-}
-
 static void animate_layers(bool to_music){
   //to_music: going to music pane automatically or not
 	//slide layers in/out
@@ -567,7 +552,6 @@ static void click_config_provider(void *context) {
   window_single_click_subscribe(BUTTON_ID_UP, up_click_handler);
   window_single_click_subscribe(BUTTON_ID_DOWN, down_click_handler);
   window_long_click_subscribe(BUTTON_ID_SELECT, 500, held_select_button_down, NULL);
-  window_long_click_subscribe(BUTTON_ID_UP, 4000, notif_find_my_iphone, find_my_iphone);
   window_long_click_subscribe(BUTTON_ID_UP, 500, held_up_buttom_down, NULL);
   window_long_click_subscribe(BUTTON_ID_DOWN, 500, held_down_button_down, NULL);
 }
