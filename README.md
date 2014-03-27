@@ -7,7 +7,7 @@ SmartStatus Minimal (Cydia)
 
 I made this SmartStatus mod because all the other SmartStatus apps I found weren't minimalist enough for me. I've done my best to remove unnecessary features, and hopefully what's left is a better, more usable app. 
 
-![screenshot](https://raw.github.com/sapphirinedreams/SmartStatus-Minimal/master/screenshot.png)
+![screenmontage](https://raw.github.com/sapphirinedreams/SmartStatus-Minimal/master//screenshots/screenmontage.png)
 
 #### Modifications to Smart-FrenchIze:
 - Fixed "For" and "In" strings for 12hr time
