@@ -287,7 +287,7 @@ static void apptDisplay(char *appt_string) {
 					}
 	  }
 
-  int fullhour = appointment->hour + 12*appointment->PM;
+  int fullhour = (appointment->hour % 12) + 12*appointment->PM;
 				if ((appointment->is_all_day) || (!appointment->is_today)) {
 					APP_LOG(APP_LOG_LEVEL_DEBUG, "    Do nothing with hour and minutes");
 				} else if (((t->tm_hour) > (fullhour)) || (((t->tm_hour) == fullhour) && (t->tm_min >= appointment->min))) {
@@ -302,6 +302,13 @@ static void apptDisplay(char *appt_string) {
 					}
 					
 					display_hour(hour_since,minutes_since,0);
+          
+          /*
+          if (minutes_since == 10) {
+            reset();
+            sendCommandInt(SM_SCREEN_ENTER_KEY, STATUS_SCREEN_APP);
+          }
+           */
 
 				} else if (((t->tm_hour) < fullhour) || (((t->tm_hour) == fullhour) && (t->tm_min < appointment->min))) {
 					int hour_difference = 0;
@@ -536,12 +543,12 @@ static void animate_layers(bool to_music){
 	property_animation_destroy((PropertyAnimation*)ani_out);
 
 
-	ani_out = property_animation_create_layer_frame(animated_layer[active_layer], &GRect(0, 0, 143, 45), &GRect(-138, 0, 143, 45));
+	ani_out = property_animation_create_layer_frame(animated_layer[active_layer], &GRect(0, 0, 144, 45), &GRect(-144, 0, 144, 45));
 	animation_schedule((Animation*)ani_out);
 
 	active_layer = (active_layer + shift) % (NUM_LAYERS);
 
-	ani_in = property_animation_create_layer_frame(animated_layer[active_layer], &GRect(138, 0, 144, 45), &GRect(0, 0, 144, 45));
+	ani_in = property_animation_create_layer_frame(animated_layer[active_layer], &GRect(144, 0, 144, 45), &GRect(0, 0, 144, 45));
 	animation_schedule((Animation*)ani_in);
 }
 
