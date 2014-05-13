@@ -7,7 +7,7 @@ SmartStatus Minimal (Cydia)
 
 I made this SmartStatus mod because all the other SmartStatus apps I found weren't minimalist enough for me. I've done my best to remove unnecessary features, and hopefully what's left is a better, more usable app. 
 
-![screenmontage](https://raw.github.com/sapphirinedreams/SmartStatus-Minimal/master//screenshots/screenmontage.png)
+![screenmontage](https://dl.dropboxusercontent.com/s/oajvg9j9a4hku0a/screenmontage.png)
 
 ####Download Link: http://cl.ly/UfKL
 
